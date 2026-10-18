@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.DS_Store
+
+# Cloudflare: local secrets and wrangler's working state
+.dev.vars
+.dev.vars.*
+.wrangler/
+
+# Your research notebook is personal data: keep it out of the public repo (folders stay via .gitkeep)
+notebook/.context/
+notebook/entries/*
+notebook/runs/*
+notebook/chats/*
+!notebook/*/.gitkeep

@@ -1,0 +1,55 @@
+{
+  "name": "reentry-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "3D atmospheric entry simulator with a Claude Code research agent",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dereksantos/reentry-lab.git"
+  },
+  "funding": "https://github.com/sponsors/dereksantos",
+  "scripts": {
+    "dev": "node server/index.js",
+    "build": "vite build",
+    "start": "vite build && node server/index.js --prod",
+    "test": "node --test test/*.test.js",
+    "sim": "node sim/cli.js",
+    "cf:dev": "vite build && wrangler dev",
+    "deploy": "npm test && vite build && wrangler deploy"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@fontsource/barlow-condensed": "5.1.0",
+    "@fontsource/ibm-plex-sans": "5.1.0",
+    "@fontsource/jetbrains-mono": "5.1.1",
+    "dompurify": "3.4.16",
+    "marked": "14.1.4",
+    "three": "0.169.0",
+    "topojson-client": "3.1.0",
+    "uplot": "1.6.31",
+    "world-atlas": "2.0.2"
+  },
+  "devDependencies": {
+    "vite": "6.4.3",
+    "wrangler": "4.147.0"
+  },
+  "overrides": {
+    "rollup": "4.64.0",
+    "esbuild": "0.25.12",
+    "postcss": "8.5.28",
+    "nanoid": "3.3.19",
+    "source-map-js": "1.2.2",
+    "picomatch": "4.0.7",
+    "tinyglobby": "0.2.17",
+    "fdir": "6.5.0",
+    "sharp": "0.35.5",
+    "wrangler": {
+      "esbuild": "0.28.1"
+    }
+  }
+}

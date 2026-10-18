@@ -1,0 +1,31 @@
+// Cloudflare Workers config for the hosted version of Reentry Lab. See DEPLOY.md.
+// Secrets (never put them here): SESSION_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET.
+// Set them with `npx wrangler secret put NAME`; for `wrangler dev`, put them in .dev.vars (git-ignored).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "reentry-lab",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/auth/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "LAB", "class_name": "Lab" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Lab"] }],
+  "ratelimits": [
+    { "name": "API_LIMIT", "namespace_id": "4101", "simple": { "limit": 120, "period": 60 } },
+    { "name": "FETCH_LIMIT", "namespace_id": "4102", "simple": { "limit": 30, "period": 60 } },
+    { "name": "AUTH_LIMIT", "namespace_id": "4103", "simple": { "limit": 20, "period": 60 } }
+  ],
+  "vars": {
+    // Shown as "Support this project" in the app when set, e.g. a Patreon, GitHub Sponsors or Ko-fi page.
+    "SUPPORT_URL": "https://github.com/sponsors/dereksantos",
+    // Link to the public source repository, shown in Settings when set.
+    "SOURCE_URL": "https://github.com/dereksantos/reentry-lab"
+  },
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

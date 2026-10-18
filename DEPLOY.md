@@ -20,7 +20,7 @@ npx wrangler login
 
 You need at least one sign-in provider; offering both is friendlier. In the steps below, `<origin>` is where the app will live, for example `https://reentry-lab.<your-subdomain>.workers.dev`. The first deploy (step 4) prints that URL, so you can deploy first and fill these in after.
 
-For testing real sign-in locally on `http://localhost:8787`, the providers differ. A GitHub OAuth app has exactly one callback URL, so create a second one (for example "Reentry Lab (dev)") for localhost. A Google client takes several redirect URIs, so add the localhost one to the same client. The dev sign-in needs neither.
+Both providers accept several callback URLs per app (GitHub: **Add redirect URI**), so one app can serve your workers.dev address, a custom domain and `http://localhost:8787` for testing real sign-in locally. The dev sign-in needs none of them.
 
 **GitHub:** go to github.com → Settings → Developer settings → OAuth Apps → New OAuth App.
 - Homepage URL: `<origin>`

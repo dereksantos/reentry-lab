@@ -8,7 +8,7 @@ import { anthropicAdapter } from '../src/agent/anthropic.js';
 import { runCommand, sweepCommand, rangeValues, baseFromPreset } from '../sim/commands.js';
 import { checkTarget } from '../worker/fetch.js';
 import { canonicalRedirect } from '../worker/canonical.js';
-import { keyProblem } from '../src/agent/providers.js';
+import { keyProblem, finishOpenRouter, callbackParams, getKey } from '../src/agent/providers.js';
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
@@ -225,4 +225,53 @@ test('pasted text that is not an API key is refused; an unusual prefix only warn
   assert.equal(keyProblem('openrouter', 'sk-or-v1-abc123'), null);
   assert.equal(keyProblem('xai', 'xai-abc'), null);
   assert.equal(keyProblem('openrouter', ''), null);
+});
+
+// ---------- OpenRouter connect (return from OpenRouter) ----------
+function fakeBrowser(path, search, pending) {
+  const store = new Map(pending ? [['reentry-lab:openrouter-pending', JSON.stringify(pending)]] : []);
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+  globalThis.location = { pathname: path, search, origin: 'https://reentrylab.ai' };
+  const replaced = [];
+  globalThis.history = { replaceState: (a, b, url) => replaced.push(url) };
+  const exchanges = [];
+  globalThis.fetch = async (url, init) => { exchanges.push({ url, body: JSON.parse(init.body) }); return Response.json({ key: 'sk-or-v1-from-exchange' }); };
+  return { store, replaced, exchanges };
+}
+const pendingNow = () => ({ verifier: 'VERIFIER', state: 'STATE', at: Date.now() });
+afterEach(() => { delete globalThis.localStorage; delete globalThis.location; delete globalThis.history; });
+
+test('OpenRouter return on the callback path exchanges the code with the stored verifier and keeps the key', async () => {
+  const b = fakeBrowser('/openrouter/callback', '?code=CODE1&state=STATE', pendingNow());
+  assert.equal(await finishOpenRouter(), true);
+  assert.deepEqual(b.exchanges, [{ url: 'https://openrouter.ai/api/v1/auth/keys', body: { code: 'CODE1', code_verifier: 'VERIFIER', code_challenge_method: 'S256' } }]);
+  assert.equal(getKey('openrouter'), 'sk-or-v1-from-exchange');
+  assert.equal(b.store.has('reentry-lab:openrouter-pending'), false);
+  assert.deepEqual(b.replaced, ['/']);
+});
+
+test('OpenRouter return still works when the code is appended with a second "?"', async () => {
+  assert.deepEqual(callbackParams('?openrouter=callback?code=C2'), { code: 'C2', state: null });
+  const b = fakeBrowser('/', '?openrouter=callback?code=C2', pendingNow());
+  assert.equal(await finishOpenRouter(), true);
+  assert.equal(b.exchanges[0].body.code, 'C2');
+});
+
+test('OpenRouter returns that cannot complete say why instead of failing silently', async () => {
+  fakeBrowser('/openrouter/callback', '', pendingNow());
+  await assert.rejects(finishOpenRouter(), /cancelled or declined/);
+  fakeBrowser('/openrouter/callback', '?code=C&state=OTHER', pendingNow());
+  await assert.rejects(finishOpenRouter(), /did not match/);
+  fakeBrowser('/openrouter/callback', '?code=C', { ...pendingNow(), at: Date.now() - 20 * 60e3 });
+  await assert.rejects(finishOpenRouter(), /expired/);
+  fakeBrowser('/openrouter/callback', '?code=C', null);
+  await assert.rejects(finishOpenRouter(), /expired/);
+});
+
+test('an ordinary page load is not treated as an OpenRouter return', async () => {
+  const b = fakeBrowser('/', '', pendingNow());
+  assert.equal(await finishOpenRouter(), false);
+  const c = fakeBrowser('/', '?code=someone-elses', null);
+  assert.equal(await finishOpenRouter(), false);
+  assert.equal(b.exchanges.length + c.exchanges.length, 0);
 });

@@ -111,36 +111,49 @@ export async function errorText(r, providerId) {
 }
 
 // ---------- OpenRouter OAuth (PKCE): https://openrouter.ai/docs/use-cases/oauth-pkce ----------
+// The return address is a clean path with no query string (OpenRouter adds ?code=&state= itself). The pending
+// verifier and state live in localStorage for 15 minutes, so the return still works if it lands in another tab.
 const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-const VERIFIER_KEY = 'reentry-lab:openrouter-verifier';
+const PENDING_KEY = 'reentry-lab:openrouter-pending';
+export const OPENROUTER_CALLBACK_PATH = '/openrouter/callback';
+const PENDING_MS = 15 * 60e3;
 
 export async function connectOpenRouter() {
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
-  sessionStorage.setItem(VERIFIER_KEY, verifier);
+  const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  write(local(), PENDING_KEY, { verifier, state, at: Date.now() });
   const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
-  const callback = `${location.origin}/?openrouter=callback`;
-  location.href = `https://openrouter.ai/auth?${new URLSearchParams({ callback_url: callback, code_challenge: challenge, code_challenge_method: 'S256' })}`;
+  const params = new URLSearchParams({ callback_url: location.origin + OPENROUTER_CALLBACK_PATH, code_challenge: challenge, code_challenge_method: 'S256', state });
+  location.href = `https://openrouter.ai/auth?${params}`;
 }
 
-// Called on page load: finishes the OpenRouter flow if we were just redirected back. Returns true when a key was stored.
+// Reads code and state from the query, tolerating a second "?" in place of "&".
+export function callbackParams(search) {
+  const p = new URLSearchParams(String(search).replace(/^\?/, '').replace(/\?/g, '&'));
+  return { code: p.get('code'), state: p.get('state') };
+}
+
+// Called on page load: finishes the OpenRouter flow if we were just redirected back. Returns true when a key was
+// stored, false when this page load isn't a return from OpenRouter, and throws when a return can't be completed.
 export async function finishOpenRouter() {
-  const params = new URLSearchParams(location.search);
-  if (params.get('openrouter') !== 'callback') return false;
-  const code = params.get('code');
-  const verifier = sessionStorage.getItem(VERIFIER_KEY);
-  sessionStorage.removeItem(VERIFIER_KEY);
-  history.replaceState(null, '', location.pathname);
-  if (!code) return false;
-  // The verifier lives in this tab's sessionStorage, so a connect started on another address (or tab) can't finish here.
-  if (!verifier) throw new Error('The OpenRouter connection did not finish. Open Settings and click Connect with OpenRouter again.');
+  const onCallback = location.pathname === OPENROUTER_CALLBACK_PATH;
+  const { code, state } = callbackParams(location.search);
+  if (!onCallback && !code) return false;
+  const pending = read(local(), PENDING_KEY);
+  if (!onCallback && !pending.verifier) return false; // a ?code= that isn't ours
+  try { local().removeItem(PENDING_KEY); } catch {}
+  history.replaceState(null, '', '/');
+  if (!code) throw new Error('OpenRouter did not connect (the request was cancelled or declined).');
+  if (!pending.verifier || Date.now() - pending.at > PENDING_MS) throw new Error('The OpenRouter connection expired. Open Settings and click Connect with OpenRouter again.');
+  if (state && state !== pending.state) throw new Error('The OpenRouter connection did not match this browser. Open Settings and click Connect with OpenRouter again.');
   const r = await fetch('https://openrouter.ai/api/v1/auth/keys', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ code, code_verifier: verifier, code_challenge_method: 'S256' })
+    body: JSON.stringify({ code, code_verifier: pending.verifier, code_challenge_method: 'S256' })
   });
   if (!r.ok) throw new Error(await errorText(r, 'openrouter'));
   const { key } = await r.json();
-  if (!key) return false;
+  if (!key) throw new Error('OpenRouter did not return a key. Try Connect with OpenRouter again.');
   setKey('openrouter', key);
   agentSettings.provider = 'openrouter';
   saveSettings();

@@ -10,6 +10,7 @@
     "type": "git",
     "url": "https://github.com/dereksantos/reentry-lab.git"
   },
+  "funding": "https://ko-fi.com/reentrylab",
   "scripts": {
     "dev": "node server/index.js",
     "build": "vite build",

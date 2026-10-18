@@ -13,7 +13,7 @@ It runs two ways, from the same code:
   - **Bring your own key:** visitors use their own API key for Anthropic (Claude), OpenAI, xAI (Grok) or Google Gemini, or connect OpenRouter for many models.
   - **Agent in the browser:** the agent runs in the visitor's browser and calls the provider directly, so keys never reach the server.
 
-Reentry Lab is open source under the [MIT license](LICENSE).
+Reentry Lab is open source under the [MIT license](LICENSE). If it's useful to you, you can [support it on Ko-fi](https://ko-fi.com/reentrylab).
 
 ## Quick start
 
@@ -137,7 +137,7 @@ test/         physics and agent tests, and a mock claude for testing the bridge
 
 ## Contributing and support
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to work on it, and [SECURITY.md](SECURITY.md) to report a vulnerability.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to work on it, and [SECURITY.md](SECURITY.md) to report a vulnerability. If you'd like to help keep it going, the project is on [Ko-fi](https://ko-fi.com/reentrylab).
 
 ## License
 

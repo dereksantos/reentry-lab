@@ -33,7 +33,7 @@
     // The app's one public address. Requests to www.<this> or *.workers.dev are redirected here; localhost is left alone.
     "CANONICAL_HOST": "reentrylab.ai",
     // Shown as "Support this project" in the app when set (the project's Ko-fi page). Empty hides the button.
-    "SUPPORT_URL": "",
+    "SUPPORT_URL": "https://ko-fi.com/reentrylab",
     // Link to the public source repository, shown in Settings when set.
     "SOURCE_URL": "https://github.com/dereksantos/reentry-lab"
   },

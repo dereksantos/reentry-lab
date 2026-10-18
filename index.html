@@ -10,7 +10,12 @@
 </head>
 <body>
   <div id="app">
-    <header class="topbar">
+    <div class="viewport" id="viewport">
+      <canvas id="scene"></canvas>
+      <div id="labels" class="labels"></div>
+    </div>
+
+    <header class="topbar glass">
       <div class="brand">
         <img class="brand-mark" src="/favicon.svg" width="24" height="24" alt="">
         <span class="brand-name">Reentry Lab</span>
@@ -24,40 +29,49 @@
       <div class="top-actions">
         <span class="computing" id="computing" hidden>Computing…</span>
         <button class="btn" id="pinBtn" type="button" title="Overlay this run for comparison">Pin run</button>
-        <button class="btn" id="saveRunBtn" type="button" title="Save this run to the notebook">Save run</button>
+        <button class="btn primary" id="saveRunBtn" type="button" title="Save this run to the notebook">Save run</button>
         <a class="btn ghost support" id="supportLink" target="_blank" rel="noopener noreferrer" hidden>♥ Support</a>
         <button class="btn ghost" id="settingsBtn" type="button" hidden>Sign in</button>
+        <span class="divider" aria-hidden="true"></span>
+        <button class="ibtn" id="focusBtn" type="button" aria-pressed="false" aria-label="Focus view: hide the panels" title="Focus view (F)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
       </div>
     </header>
 
     <aside class="left" id="paramPanel" aria-label="Simulation settings"></aside>
 
-    <main class="stage">
-      <div class="viewport" id="viewport">
-        <canvas id="scene"></canvas>
-        <div id="labels" class="labels"></div>
-        <div class="hud" id="hud"></div>
-        <div class="view-tools">
-          <div class="seg" role="group" aria-label="Camera">
-            <button type="button" data-cam="orbit" aria-pressed="true">Free</button>
-            <button type="button" data-cam="follow" aria-pressed="false">Follow</button>
-            <button type="button" data-cam="fit">Fit path</button>
-          </div>
-          <label class="exag">
-            <span>Altitude ×<b id="exagOut">8</b></span>
-            <input type="range" id="exag" min="1" max="40" step="1" value="8">
-          </label>
-        </div>
-        <div class="legend" id="legend"></div>
-        <div class="inset-frame" id="insetFrame"><span class="inset-label">Vehicle camera</span></div>
-      </div>
-      <section class="bottom">
-        <div class="timeline" id="timeline"></div>
-        <div class="charts" id="charts"></div>
-      </section>
-    </main>
+    <div class="hud glass" id="hud"></div>
 
-    <aside class="right" aria-label="Research">
+    <div class="view-tools glass" role="toolbar" aria-label="Camera">
+      <button class="ibtn" type="button" data-cam="orbit" aria-pressed="true" aria-label="Free camera" title="Free camera">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M3.5 9h17M3.5 15h17"/></svg>
+      </button>
+      <button class="ibtn" type="button" data-cam="follow" aria-pressed="false" aria-label="Follow the vehicle" title="Follow the vehicle">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </button>
+      <button class="ibtn" type="button" data-cam="fit" aria-label="Fit the whole path" title="Fit the whole path">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19c5-1 7-6 9-10s4-5 7-5M4 19h.01M20 4h.01"/></svg>
+      </button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="ibtn" type="button" id="exagDown" aria-label="Less altitude exaggeration" title="Altitude exaggeration down">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>
+      </button>
+      <span class="exag" title="Altitude exaggeration"><span>ALT</span><b>×<span id="exagOut">8</span></b></span>
+      <button class="ibtn" type="button" id="exagUp" aria-label="More altitude exaggeration" title="Altitude exaggeration up">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+
+    <div class="legend glass" id="legend"></div>
+    <div class="inset-frame" id="insetFrame"><span class="inset-label">Vehicle camera</span></div>
+
+    <section class="bottom glass" aria-label="Playback and plots">
+      <div class="timeline" id="timeline"></div>
+      <div class="charts" id="charts"></div>
+    </section>
+
+    <aside class="right glass" id="researchPanel" aria-label="Research">
       <nav class="tabs" role="tablist">
         <button role="tab" type="button" id="tab-agent" aria-selected="true" data-tab="agent">Research</button>
         <button role="tab" type="button" id="tab-runs" aria-selected="false" data-tab="runs">Runs</button>
@@ -67,6 +81,15 @@
       <section class="tabpanel" id="panel-runs" data-panel="runs" hidden></section>
       <section class="tabpanel" id="panel-notebook" data-panel="notebook" hidden></section>
     </aside>
+    <button class="edge-tab glass" id="leftTab" type="button" data-panel="left" aria-controls="paramPanel" aria-expanded="true" title="Hide settings ([)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 7l-5 5 5 5"/></svg><span class="sr">Settings panel</span>
+    </button>
+    <button class="edge-tab glass" id="rightTab" type="button" data-panel="right" aria-controls="researchPanel" aria-expanded="true" title="Hide research (])">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l5 5-5 5"/></svg><span class="sr">Research panel</span>
+    </button>
+    <button class="edge-tab glass" id="bottomTab" type="button" data-panel="bottom" aria-controls="charts" aria-expanded="true" title="Hide plots">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg><span class="sr">Plots</span>
+    </button>
   </div>
   <div class="toast" id="toast" role="status" hidden></div>
   <script type="module" src="/src/main.js"></script>

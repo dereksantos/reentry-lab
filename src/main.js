@@ -274,11 +274,8 @@ document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click
   globe.setMode(m);
   document.querySelectorAll('[data-cam]').forEach((x) => x.dataset.cam !== 'fit' && x.setAttribute('aria-pressed', String(x.dataset.cam === m)));
 }));
-const exag = $('exag');
-exag.value = store.exag;
-$('exagOut').textContent = store.exag;
-exag.addEventListener('input', () => {
-  store.exag = Number(exag.value);
+function setExag(v) {
+  store.exag = Math.max(1, Math.min(40, v));
   $('exagOut').textContent = store.exag;
   if (store.result) {
     globe.setRun(store.result, store.exag, heatMax);
@@ -286,7 +283,44 @@ exag.addEventListener('input', () => {
     refreshFrame(true);
   }
   persist();
-});
+}
+$('exagOut').textContent = store.exag;
+$('exagUp').addEventListener('click', () => setExag(store.exag < 4 ? store.exag + 1 : store.exag + 2));
+$('exagDown').addEventListener('click', () => setExag(store.exag <= 4 ? store.exag - 1 : store.exag - 2));
+
+// ---------- panel layout: focus view, research panel, plots ----------
+const app = $('app');
+const ui = (() => { try { return JSON.parse(localStorage.getItem('reentry-ui')) || {}; } catch { return {}; } })();
+function setLayout(key, value) {
+  ui[key] = value;
+  try { localStorage.setItem('reentry-ui', JSON.stringify(ui)); } catch {}
+  app.classList.toggle('focus', !!ui.focus);
+  app.classList.toggle('no-left', !!ui.noLeft);
+  app.classList.toggle('no-right', !!ui.noRight);
+  app.classList.toggle('no-plots', !!ui.noPlots);
+  $('focusBtn').setAttribute('aria-pressed', String(!!ui.focus));
+  for (const [id, key, name] of [['leftTab', 'noLeft', 'settings ([)'], ['rightTab', 'noRight', 'research (])'], ['bottomTab', 'noPlots', 'plots']]) {
+    $(id).setAttribute('aria-expanded', String(!ui[key]));
+    $(id).title = `${ui[key] ? 'Show' : 'Hide'} ${name}`;
+  }
+  requestAnimationFrame(updateInsets);
+}
+// How much of the canvas each floating panel covers, so the globe is framed in the open area.
+function updateInsets() {
+  const cr = canvas.getBoundingClientRect();
+  const over = (sel) => { const el = document.querySelector(sel); return el && el.offsetParent && getComputedStyle(el).position === 'absolute' ? el.getBoundingClientRect() : null; };
+  const L = over('.left'), R = over('.right'), T = over('.topbar'), B = over('.bottom'), H = over('.hud');
+  globe.setInsets({
+    left: L ? Math.max(0, L.right - cr.left) : 0,
+    right: R ? Math.max(0, cr.right - R.left) : 0,
+    top: Math.max(T ? T.bottom - cr.top : 0, H ? H.bottom - cr.top : 0),
+    bottom: B ? Math.max(0, cr.bottom - B.top) : 0
+  });
+}
+$('focusBtn').addEventListener('click', () => setLayout('focus', !ui.focus));
+$('leftTab').addEventListener('click', () => setLayout('noLeft', !ui.noLeft));
+$('rightTab').addEventListener('click', () => setLayout('noRight', !ui.noRight));
+$('bottomTab').addEventListener('click', () => setLayout('noPlots', !ui.noPlots));
 
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
@@ -294,7 +328,7 @@ document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('cli
 }));
 on('runs-changed', () => {});
 
-new ResizeObserver(() => globe.resize()).observe($('viewport'));
+new ResizeObserver(() => updateInsets()).observe($('viewport'));
 
 // ---------- boot ----------
 const health = await loadHealth();
@@ -313,13 +347,18 @@ if (isCloud()) {
 }
 buildParams($('paramPanel'));
 buildTimeline($('timeline'));
+setLayout('focus', !!ui.focus);
 buildCharts($('charts'));
 buildAgent($('panel-agent'), buildContext);
 buildLibrary($('panel-runs'), $('panel-notebook'));
-globe.resize();
+updateInsets();
 emit('params');
 requestAnimationFrame(loop);
 window.addEventListener('keydown', (e) => {
   if (e.target.closest('input, textarea, select')) return;
   if (e.key === ' ') { e.preventDefault(); setPlaying(!store.playing); }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'f' || e.key === 'F') setLayout('focus', !ui.focus);
+  if (e.key === '[') setLayout('noLeft', !ui.noLeft);
+  if (e.key === ']') setLayout('noRight', !ui.noRight);
 });

@@ -54,6 +54,14 @@ export class Globe {
     this.lineMaterials = [];
     this.lastTarget = null;
     this.mode = 'orbit';
+    // Pixels of the canvas covered by floating panels; the camera frames the open area between them.
+    this.insets = { left: 0, right: 0, top: 0, bottom: 0 };
+    this.fitScale = 1;
+  }
+
+  setInsets(insets) {
+    this.insets = insets;
+    this.resize();
   }
 
   makeStars() {
@@ -256,7 +264,7 @@ export class Globe {
     this.controls.target.copy(center);
     const side = new THREE.Vector3().subVectors(pts[pts.length - 1], pts[0]).normalize();
     const view = out.clone().multiplyScalar(0.9).add(new THREE.Vector3().crossVectors(out, side).multiplyScalar(0.45)).normalize();
-    this.camera.position.copy(center.clone().add(view.multiplyScalar(radius * 3.2 + 0.15)));
+    this.camera.position.copy(center.clone().add(view.multiplyScalar((radius * 3.2 + 0.15) * this.fitScale)));
   }
 
   resize() {
@@ -265,6 +273,12 @@ export class Globe {
     this.renderer.setSize(w, h, false);
     this.labelRenderer.setSize(w, h);
     this.camera.aspect = w / h;
+    const { left, right, top, bottom } = this.insets;
+    const fw = Math.max(120, w - left - right), fh = Math.max(120, h - top - bottom);
+    // Shift the projection so the orbit target sits at the centre of the open area, not the canvas.
+    if (left || right || top || bottom) this.camera.setViewOffset(w, h, (right - left) / 2, (bottom - top) / 2, w, h);
+    else this.camera.clearViewOffset();
+    this.fitScale = Math.min(3, Math.max(1, h / fh, (1.25 * h) / fw));
     this.camera.updateProjectionMatrix();
     for (const m of this.lineMaterials) m.resolution.set(w, h);
   }

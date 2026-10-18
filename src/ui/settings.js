@@ -10,12 +10,27 @@ import {
 
 const modelCache = {};
 
+// Store what's in the key field; the field shows bullets for a key that's already saved.
+function commitKey(input, prov) {
+  const v = input.value.trim();
+  if (!v || v.startsWith('•') || v === getKey(prov)) return false;
+  setKey(prov, v);
+  delete modelCache[prov];
+  return true;
+}
+
 export function openSettings() {
   const health = getHealth() || {};
   const dlg = document.createElement('dialog');
   dlg.className = 'settings';
   document.body.appendChild(dlg);
-  dlg.addEventListener('close', () => { dlg.remove(); emit('agent-settings'); });
+  // Save a typed key even if the dialog is closed without the field losing focus first (Esc, backdrop click).
+  dlg.addEventListener('close', () => {
+    const input = dlg.querySelector('#setKey');
+    if (input) commitKey(input, currentProvider());
+    dlg.remove();
+    emit('agent-settings');
+  });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
 
   const render = () => {
@@ -69,11 +84,11 @@ export function openSettings() {
     q('#setProvider').addEventListener('change', (e) => { agentSettings.provider = e.target.value; saveSettings(); render(); });
     const keyInput = q('#setKey');
     keyInput.addEventListener('focus', () => { if (keyInput.value.startsWith('•')) keyInput.value = ''; });
+    keyInput.addEventListener('input', () => commitKey(keyInput, prov));
     keyInput.addEventListener('change', () => {
       const v = keyInput.value.trim();
       if (!v || v.startsWith('•')) return;
-      setKey(prov, v);
-      delete modelCache[prov];
+      commitKey(keyInput, prov);
       toast('Key saved in this browser');
       render();
       loadModels(prov, v);

@@ -69,10 +69,11 @@ The Worker sends plain HTTP, `www.<domain>` and the workers.dev address to `http
 ## Local testing of the hosted version
 
 ```bash
-printf 'SESSION_SECRET=%s\nDEV_LOGIN=true\n' "$(openssl rand -hex 32)" > .dev.vars
+printf 'SESSION_SECRET=%s\nDEV_LOGIN=true\nCANONICAL_HOST=\n' "$(openssl rand -hex 32)" > .dev.vars
 npm run cf:dev          # builds dist/, then wrangler dev on http://localhost:8787
 ```
 
+- **No redirects locally:** the empty `CANONICAL_HOST=` turns off the redirect to the public domain, since `wrangler dev` treats requests as if they were for the configured domain.
 - **Dev sign-in:** `DEV_LOGIN=true` adds a "Dev sign-in" button that works only on localhost. A deployed Worker refuses it even if the variable is set.
 - **Testing real OAuth:** add the OAuth secrets to `.dev.vars` too. `.dev.vars` is git-ignored.
 

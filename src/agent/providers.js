@@ -117,7 +117,9 @@ export async function finishOpenRouter() {
   const verifier = sessionStorage.getItem(VERIFIER_KEY);
   sessionStorage.removeItem(VERIFIER_KEY);
   history.replaceState(null, '', location.pathname);
-  if (!code || !verifier) return false;
+  if (!code) return false;
+  // The verifier lives in this tab's sessionStorage, so a connect started on another address (or tab) can't finish here.
+  if (!verifier) throw new Error('The OpenRouter connection did not finish. Open Settings and click Connect with OpenRouter again.');
   const r = await fetch('https://openrouter.ai/api/v1/auth/keys', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

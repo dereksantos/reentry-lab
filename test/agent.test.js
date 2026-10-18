@@ -213,4 +213,5 @@ test('http, www and workers.dev redirect to https on the canonical host; localho
   assert.equal(c.status, 301);
   assert.equal(c.headers.get('location'), 'https://reentrylab.ai/path');
   assert.equal(canonicalRedirect(new URL('http://127.0.0.1:8787/'), 'GET', 'reentrylab.ai'), null);
+  assert.equal(canonicalRedirect(new URL('http://reentrylab.ai/'), 'GET', ''), null, 'empty CANONICAL_HOST (wrangler dev) turns redirects off');
 });

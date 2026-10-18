@@ -20,6 +20,7 @@ export async function runCloudAgent({ message, context, history, sessionId, sign
   const p = PROVIDERS[providerId];
   const model = currentModel();
   const key = getKey(providerId);
+  if (!key) return send({ t: 'error', message: `No ${p.label} API key is saved in this browser. Add it in Settings.` });
   const webSearch = providerId === 'openrouter' && agentSettings.openrouterWeb;
   // Loaded on first use, so the Anthropic SDK isn't in the main bundle (local mode never needs it).
   const adapter = p.kind === 'anthropic'

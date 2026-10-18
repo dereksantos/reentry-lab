@@ -246,6 +246,10 @@ async function saveToNotebook(m) {
 async function send(text) {
   text = (text || '').trim();
   if (!text || busy) return;
+  if (isCloud()) {
+    const ready = cloudAgentReady();
+    if (!ready.ok) { toast(ready.reason, 4000); checkHealth(); openSettings(); return; }
+  }
   input.value = '';
   input.style.height = '';
   const userMsg = { role: 'user', text };

@@ -1,3 +1,4 @@
+<p align="center"><img src="brand/logo.svg" width="112" alt=""></p>
 
 # Reentry Lab
 

@@ -2,6 +2,13 @@ node_modules/
 dist/
 .DS_Store
 
+# Secrets and editor scratch files
+.env
+.env.*
+*.swp
+*.swo
+*~
+
 # Cloudflare: local secrets and wrangler's working state
 .dev.vars
 .dev.vars.*

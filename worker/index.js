@@ -28,6 +28,9 @@ export default {
         return await handleAuth(request, env, url);
       }
       if (url.pathname.startsWith('/api/')) return await api(request, env, url);
+      // The app is one page. OpenRouter's sign-in returns to this path (OPENROUTER_CALLBACK_PATH in
+      // src/agent/providers.js), so serve the app there too; any other unknown path gets 404.html.
+      if (url.pathname === '/openrouter/callback') return env.ASSETS.fetch(new Request(new URL('/', url), request));
       return env.ASSETS.fetch(request);
     } catch (e) {
       console.error(JSON.stringify({ msg: 'unhandled error', path: url.pathname, error: String(e?.stack || e) }));

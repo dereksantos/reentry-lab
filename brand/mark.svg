@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 6 56 52" role="img" aria-label="Reentry Lab">
+  <!-- The mark without its tile, for dark backgrounds that already have one (the app's top bar). Same geometry as logo.svg. -->
+  <defs>
+    <radialGradient id="rlm-planet" cx="23" cy="28" r="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f5a8f"/><stop offset=".6" stop-color="#123a5e"/><stop offset="1" stop-color="#0a2238"/>
+    </radialGradient>
+    <linearGradient id="rlm-arc" x1="6" y1="14" x2="50" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd27a" stop-opacity="0"/><stop offset=".45" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5a2a"/>
+    </linearGradient>
+    <radialGradient id="rlm-glow">
+      <stop offset="0" stop-color="#ffd27a" stop-opacity=".9"/><stop offset=".45" stop-color="#ff8a3d" stop-opacity=".45"/><stop offset="1" stop-color="#ff5a2a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="29" cy="37" r="20.5" fill="none" stroke="#5ea2ff" stroke-opacity=".22" stroke-width="3"/>
+  <circle cx="29" cy="37" r="17.5" fill="url(#rlm-planet)" stroke="#5ea2ff" stroke-width="1.5"/>
+  <path d="M5 16 C19 8 39 10 49.5 30.5" fill="none" stroke="url(#rlm-arc)" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="50.5" cy="32" r="8" fill="url(#rlm-glow)"/>
+  <circle cx="50.5" cy="32" r="3.4" fill="#fff1e0"/>
+</svg>

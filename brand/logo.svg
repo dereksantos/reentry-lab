@@ -1,20 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Reentry Lab">
-  <!-- Reentry Lab mark: a capsule, heat shield leading, at the end of its glowing entry trail above the planet's limb. -->
+  <!-- Reentry Lab mark: a vehicle glowing at the end of its entry arc, coming in over the planet's limb. -->
   <defs>
-    <linearGradient id="rl-trail" x1="3" y1="6" x2="38" y2="36" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffd27a" stop-opacity="0"/><stop offset=".6" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5a2a"/>
+    <linearGradient id="rl-bg" x1="0" y1="0" x2="0" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0d2236"/><stop offset="1" stop-color="#07131f"/>
     </linearGradient>
+    <radialGradient id="rl-planet" cx="23" cy="28" r="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f5a8f"/><stop offset=".6" stop-color="#123a5e"/><stop offset="1" stop-color="#0a2238"/>
+    </radialGradient>
+    <linearGradient id="rl-arc" x1="6" y1="14" x2="50" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd27a" stop-opacity="0"/><stop offset=".45" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5a2a"/>
+    </linearGradient>
+    <radialGradient id="rl-glow">
+      <stop offset="0" stop-color="#ffd27a" stop-opacity=".9"/><stop offset=".45" stop-color="#ff8a3d" stop-opacity=".45"/><stop offset="1" stop-color="#ff5a2a" stop-opacity="0"/>
+    </radialGradient>
     <clipPath id="rl-frame"><rect width="64" height="64" rx="14"/></clipPath>
   </defs>
   <g clip-path="url(#rl-frame)">
-    <rect width="64" height="64" fill="#0b1e33"/>
-    <circle cx="54" cy="98" r="54" fill="#123a5e"/>
-    <circle cx="54" cy="98" r="57.5" fill="none" stroke="#5ea2ff" stroke-opacity=".4" stroke-width="3"/>
-    <path d="M2 8 Q24 12 35 33" fill="none" stroke="url(#rl-trail)" stroke-width="5.5" stroke-linecap="round"/>
-    <g transform="translate(38 38) rotate(58) scale(.42)">
-      <path d="M17 -22 Q26 0 17 22" fill="none" stroke="#ffd27a" stroke-width="4.5" stroke-linecap="round"/>
-      <path d="M9 -15 L-11 -6 L-11 6 L9 15 Z" fill="#e4ebf3"/>
-      <path d="M9 -15 Q14 0 9 15" fill="none" stroke="#ff5a2a" stroke-width="4" stroke-linecap="round"/>
-    </g>
+    <rect width="64" height="64" fill="url(#rl-bg)"/>
+    <circle cx="29" cy="37" r="20.5" fill="none" stroke="#5ea2ff" stroke-opacity=".22" stroke-width="3"/>
+    <circle cx="29" cy="37" r="17.5" fill="url(#rl-planet)" stroke="#5ea2ff" stroke-width="1.5"/>
+    <path d="M5 16 C19 8 39 10 49.5 30.5" fill="none" stroke="url(#rl-arc)" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="50.5" cy="32" r="8" fill="url(#rl-glow)"/>
+    <circle cx="50.5" cy="32" r="3.4" fill="#fff1e0"/>
   </g>
 </svg>

@@ -63,6 +63,7 @@ npm run deploy          # runs the tests, builds dist/, then wrangler deploy
 2. Replace the two `routes` entries in `wrangler.jsonc` with your domain.
 3. Set `CANONICAL_HOST` to your domain, or to `""` for no redirects.
 4. Deploy, then add `https://<your domain>/auth/callback/<provider>` to each OAuth app.
+5. Replace `https://reentrylab.ai` in the link-preview tags at the top of `index.html` (`canonical`, `og:` and `twitter:`), so shared links show your domain.
 
 The Worker sends plain HTTP, `www.<domain>` and the workers.dev address to `https://<CANONICAL_HOST>`. Only set `CANONICAL_HOST` once the domain loads, or the workers.dev address will redirect to a site that doesn't work yet.
 

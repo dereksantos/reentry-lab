@@ -9,7 +9,8 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
+    // Unknown paths get public/404.html (a real 404, so scanners probing for /.env and the like move on).
+    "not_found_handling": "404-page",
     // Every request goes through the Worker first, so it can redirect http, www and workers.dev to https://CANONICAL_HOST.
     "run_worker_first": true
   },

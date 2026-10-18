@@ -7,6 +7,7 @@
 | `mark.svg` | The mark without its tile, for dark backgrounds that already have one. Served as `public/mark.svg` for the app's top bar |
 | `logo-512.png` | Upload where an app logo is asked for, such as the GitHub OAuth app |
 | `social-preview.png` | GitHub repo social preview (1280 × 640): Settings → General → Social preview |
+| `og.jpg` | Link preview image for the website (1200 × 630), a render of the app with the wordmark. Also served as `public/og.jpg` and named in the `og:` tags in `index.html` |
 | `../public/apple-touch-icon.png` | Home-screen icon (180 px, square; iOS rounds the corners) |
 
 The mark is a vehicle glowing white-hot at the end of its entry arc, coming in over the limb of a planet with a thin blue atmosphere.

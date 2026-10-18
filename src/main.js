@@ -18,6 +18,7 @@ import { VehicleView } from './three/vehicleView.js';
 import { buildParams, sync as syncParams } from './ui/params.js';
 import { buildHangar, updateHangar, openHangar } from './ui/hangar.js';
 import { warmSnapshots } from './three/snapshots.js';
+import { buildRide, openRide, closeRide, updateRide, isRideOpen } from './ui/ride.js';
 import { buildTimeline, updateTimelineRun, updateTimelineHead, setPlaying } from './ui/timeline.js';
 import { renderHud } from './ui/hud.js';
 import { buildCharts, updateCharts, redrawPlayhead } from './ui/charts.js';
@@ -257,8 +258,13 @@ function loop(now) {
     if (store.playhead >= T) { store.playhead = T; setPlaying(false); }
     refreshFrame(false);
   }
-  globe.render();
-  if (current) {
+  if (isRideOpen()) {
+    // The ride-along view covers the globe, so skip drawing it.
+    updateRide(current, store.result, now);
+  } else {
+    globe.render();
+  }
+  if (current && !isRideOpen()) {
     vview.update(current, store.result.params, store.result.params.planet);
     const fr = $('insetFrame').getBoundingClientRect(), cr = canvas.getBoundingClientRect();
     vview.render(globe.renderer, { x: fr.left - cr.left, y: fr.top - cr.top, w: fr.width, h: fr.height }, cr.height);
@@ -346,6 +352,8 @@ if (isCloud()) {
 }
 warmSnapshots(['capsule', 'probe', 'inflatable', 'glider']);
 buildHangar($('presetBtn'), $('hangar'), loadPreset);
+buildRide($('ride'));
+$('rideBtn').addEventListener('click', openRide);
 buildParams($('paramPanel'));
 buildTimeline($('timeline'));
 setLayout('focus', !!ui.focus);
@@ -356,9 +364,10 @@ updateInsets();
 emit('params');
 requestAnimationFrame(loop);
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isRideOpen()) { closeRide(); return; }
   if (e.target.closest('input, textarea, select')) return;
   if (e.key === ' ') { e.preventDefault(); setPlaying(!store.playing); }
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || isRideOpen()) return;
   if (e.key === 'f' || e.key === 'F') setLayout('focus', !ui.focus);
   if (e.key === '[') setLayout('noLeft', !ui.noLeft);
   if (e.key === ']') setLayout('noRight', !ui.noRight);

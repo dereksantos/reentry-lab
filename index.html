@@ -67,7 +67,11 @@
     </div>
 
     <div class="legend glass" id="legend"></div>
-    <div class="inset-frame" id="insetFrame"><span class="inset-label">Vehicle camera</span></div>
+    <div class="inset-frame" id="insetFrame"><span class="inset-label">Vehicle camera</span>
+      <button class="ride-btn" id="rideBtn" type="button" title="See the descent from the vehicle window, with sound">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M8 12a4 4 0 1 0 8 0a4 4 0 1 0-8 0"/></svg>Ride along
+      </button>
+    </div>
 
     <section class="bottom glass" aria-label="Playback and plots">
       <div class="timeline" id="timeline"></div>
@@ -94,6 +98,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg><span class="sr">Plots</span>
     </button>
   </div>
+  <div class="ride" id="ride" role="dialog" aria-modal="true" aria-label="Ride along" hidden></div>
   <div class="toast" id="toast" role="status" hidden></div>
   <script type="module" src="/src/main.js"></script>
 </body>

@@ -1,7 +1,7 @@
 // Flight data readout over the 3D view, for the playback moment.
 import { clock, sig } from '../format.js';
 
-function phase(s, result) {
+export function phase(s, result) {
   if (s.chute >= 2) return 'Main chute';
   if (s.chute >= 1) return 'Drogue';
   if (s.alt <= 1 && result.summary.outcome === 'landed' && s.t >= result.summary.flightTime - 0.5) return 'Landed';

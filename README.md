@@ -32,10 +32,13 @@ To try the hosted version locally, run `npm run cf:dev`; [DEPLOY.md](DEPLOY.md) 
 
 ## Using it
 
-- **Presets** (top bar) load a vehicle and mission: low-orbit capsule, Moon return, winged glider, fast sample return, inflatable decelerator, ballistic probe, a capsule with speculative magnetic braking, and a Mars lander. They are inspired by real missions with rounded public numbers; they are not reconstructions of flown trajectories.
-- **Settings** (left) change anything: vehicle, bank-angle guidance, entry state, parachutes, limits, planet and air density, integrator tolerance. A dot marks values you changed from the preset.
-- **The globe** shows the path colored by heat flux, the ground track, and key events. Altitude is exaggerated (slider, default ×8) because the atmosphere is otherwise too thin to see. *Follow* chases the vehicle, *Fit path* frames the whole flight.
-- **Vehicle camera** (bottom right) shows the vehicle in its own flight frame: bank angle, plasma glow from the heating, wall glow from the radiative-equilibrium temperature, parachutes and horizon.
+The globe fills the window and the panels float over it as glass. Each panel has a small tab on its inner edge that tucks it away; `[` and `]` toggle the side panels, and `F` hides everything for a clear view of the planet.
+
+- **Hangar** (top bar) is where you pick a mission: low-orbit capsule, Moon return, winged glider, fast sample return, inflatable decelerator, ballistic probe, a capsule with speculative magnetic braking, and a Mars lander. Each card shows the vehicle, its planet, entry speed and ballistic coefficient. The missions are inspired by real ones with rounded public numbers; they are not reconstructions of flown trajectories.
+- **Settings** (left) change anything: vehicle, bank-angle guidance, entry state, parachutes, limits, planet and air density, integrator tolerance. Each group is a card with a one-line summary, so a closed card still tells you what's set. A dot marks values you changed from the preset.
+- **The globe** shows the path colored by heat flux, the ground track, and key events, with the flight readout above it (*+7* shows the rest). Altitude is exaggerated (default ×8, the − and + buttons change it) because the atmosphere is otherwise too thin to see. *Follow* chases the vehicle, *Fit path* frames the whole flight.
+- **Vehicle camera** shows the vehicle in its own flight frame: bank angle, plasma glow from the heating, wall glow from the radiative-equilibrium temperature, parachutes and horizon.
+- **Ride along** (on the vehicle camera) puts you at a capsule window for the descent: the sky darkens and brightens with altitude, plasma builds with the heating, the cabin shakes with the loads, and the parachutes open on cue. Turn on sound and you'll hear it too, generated live from the run: roar from dynamic pressure, hiss from heating, rumble from g, and a thump as each parachute opens. Esc goes back.
 - **Timeline and plots** are synced: press space or ▶ to play, drag the track or click any plot to jump. The last plot is the speed–altitude corridor with the heat-shield limit line.
 - **Pin run** keeps the current flight on screen while you change settings, so you can compare up to three runs. **Save run** stores it in the notebook.
 - **Research** (right) is the agent. With *Share the current run* on, every question includes what you have loaded and the moment you're looking at. When the agent suggests settings, an *Apply to simulator* button appears; applying pins your previous run for comparison. Runs the agent saves show up under **Runs**; notes and chat logs show up under **Notebook**.
@@ -128,7 +131,8 @@ The tests (`npm test`) check the atmosphere against the standard, geodetic conve
 sim/          physics core (shared by the app, the CLI, the hosted agent and tests)
 server/       local server: serves the app, bridges to claude -p, notebook API
 worker/       Cloudflare Worker: sign-in, per-user notebook (Durable Object), page fetcher
-src/          front end: three.js globe and vehicle camera, uPlot charts, panels
+src/          front end: three.js globe, vehicle camera and Hangar pictures, uPlot charts, panels, ride-along view
+src/audio/    ride-along sound, synthesized with Web Audio
 src/agent/    hosted research agent: tool loop, provider adapters, tools, prompt
 agent/        instructions given to the research agent
 notebook/     entries/ (notes), runs/ (saved runs), chats/ (conversation logs); git-ignored

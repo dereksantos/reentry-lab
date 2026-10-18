@@ -16,6 +16,8 @@ import { heatGradient } from './colormap.js';
 import { Globe } from './three/globe.js';
 import { VehicleView } from './three/vehicleView.js';
 import { buildParams, sync as syncParams } from './ui/params.js';
+import { buildHangar, updateHangar, openHangar } from './ui/hangar.js';
+import { warmSnapshots } from './three/snapshots.js';
 import { buildTimeline, updateTimelineRun, updateTimelineHead, setPlaying } from './ui/timeline.js';
 import { renderHud } from './ui/hud.js';
 import { buildCharts, updateCharts, redrawPlayhead } from './ui/charts.js';
@@ -33,20 +35,16 @@ let jumpToPeak = true;
 let heatMax = 100;
 
 // ---------- presets ----------
-const presetSel = $('presetSelect');
-presetSel.innerHTML = PRESETS.map((p) => `<option value="${p.key}">${p.name}</option>`).join('');
-presetSel.value = store.presetKey;
-presetSel.addEventListener('change', () => loadPreset(presetSel.value));
 function loadPreset(key) {
   const p = PRESETS.find((x) => x.key === key);
   store.presetKey = key;
   store.params = clone(p.params);
-  presetSel.value = key;
   jumpToPeak = true;
   syncParams();
   emit('params');
 }
-on('preset', (key) => { presetSel.value = key; jumpToPeak = true; });
+on('preset', () => { jumpToPeak = true; });
+on('open-hangar', openHangar);
 
 function runLabel(params = store.params) {
   const p = PRESETS.find((x) => x.key === store.presetKey);
@@ -57,6 +55,7 @@ function runLabel(params = store.params) {
 // ---------- simulation ----------
 on('params', () => {
   persist();
+  updateHangar(runLabel());
   runLatest(store.params, onResult, (b) => ($('computing').hidden = !b));
 });
 on('params-external', () => { syncParams(); emit('params'); });
@@ -345,6 +344,8 @@ if (isCloud()) {
     emit('agent-settings');
   }).catch((e) => toast(e.message, 5000));
 }
+warmSnapshots(['capsule', 'probe', 'inflatable', 'glider']);
+buildHangar($('presetBtn'), $('hangar'), loadPreset);
 buildParams($('paramPanel'));
 buildTimeline($('timeline'));
 setLayout('focus', !!ui.focus);

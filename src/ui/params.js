@@ -2,6 +2,7 @@
 import { PARAMS, PRESETS, PLANETS, getPath, setPath, displayValue } from '../../sim/index.js';
 import { store, emit } from '../store.js';
 import { sig } from '../format.js';
+import { vehicleSnapshot } from '../three/snapshots.js';
 
 // [id, title, open, tag, color, icon path]. The color tints the card's icon so groups are easy to tell apart.
 const GROUPS = [
@@ -55,11 +56,20 @@ export function buildParams(root) {
       <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><div class="pbody"></div>`;
     const body = det.querySelector('.pbody');
     for (const m of PARAMS.filter((p) => p.group === id)) body.appendChild(row(m));
-    if (id === 'vehicle') body.appendChild(derived('beta', 'Ballistic coefficient β'));
+    if (id === 'vehicle') { body.prepend(snapshot()); body.appendChild(derived('beta', 'Ballistic coefficient β')); }
     if (id === 'entry') { body.appendChild(derived('orbit', 'Circular orbit speed here')); body.appendChild(derived('escape', 'Escape speed here')); }
     root.appendChild(det);
   }
   sync();
+}
+
+// Picture of the current vehicle at the top of the Vehicle card, with a shortcut to the Hangar.
+function snapshot() {
+  const d = document.createElement('div');
+  d.className = 'vsnap';
+  d.innerHTML = `<img alt="" id="vsnapImg"><span class="vsnap-name" id="vsnapName"></span><button type="button" class="btn small" id="vsnapChange">Change</button>`;
+  d.querySelector('button').addEventListener('click', () => emit('open-hangar'));
+  return d;
 }
 
 function derived(id, label) {
@@ -139,6 +149,13 @@ export function sync(skipPath) {
   for (const { m, el } of rows) if (m.path === 'guidance.bank') el.hidden = store.params.guidance.mode === 'spin';
 
   for (const [id] of GROUPS) setText(`gsum-${id}`, SUMMARY[id]());
+  const img = document.getElementById('vsnapImg');
+  if (img) {
+    const shape = store.params.vehicle.shape;
+    img.src = vehicleSnapshot(shape);
+    img.alt = `${shape} vehicle`;
+    setText('vsnapName', `${shape} · ${PRESETS.find((p) => p.key === store.presetKey)?.name || 'custom'}`);
+  }
   const v = store.params.vehicle, P = PLANETS[store.params.planet];
   const r = P.meanRadius + store.params.entry.alt;
   setText('derived-beta', `${sig(v.mass / (v.cd * v.refArea))} kg/m²`);

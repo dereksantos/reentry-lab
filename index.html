@@ -21,10 +21,11 @@
         <span class="brand-name">Reentry Lab</span>
         <span class="brand-sub">entry simulator</span>
       </div>
-      <label class="preset-pick">
-        <span class="sr">Preset</span>
-        <select id="presetSelect" aria-label="Preset"></select>
-      </label>
+      <button class="preset-btn" id="presetBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="hangar" title="Choose a mission">
+        <span class="pthumb"><img alt="" width="54" height="34"></span>
+        <span class="ptext"><b>Loading…</b><span class="psub"></span></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
       <div class="checks" id="checks" aria-live="polite"></div>
       <div class="top-actions">
         <span class="computing" id="computing" hidden>Computing…</span>
@@ -38,6 +39,8 @@
         </button>
       </div>
     </header>
+
+    <div class="hangar glass" id="hangar" role="dialog" aria-label="Choose a mission" hidden></div>
 
     <aside class="left" id="paramPanel" aria-label="Simulation settings"></aside>
 

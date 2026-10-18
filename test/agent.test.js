@@ -7,6 +7,7 @@ import { openaiAdapter, sse } from '../src/agent/openai.js';
 import { anthropicAdapter } from '../src/agent/anthropic.js';
 import { runCommand, sweepCommand, rangeValues, baseFromPreset } from '../sim/commands.js';
 import { checkTarget } from '../worker/fetch.js';
+import { canonicalRedirect } from '../worker/canonical.js';
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
@@ -194,4 +195,22 @@ test('fetch proxy accepts public web URLs and refuses everything else', () => {
     'ftp://example.com', 'https://u:p@example.com', 'http://example.com:8080', 'http://intranet/', 'http://printer.local', 'http://db.internal', 'not a url']) {
     assert.notEqual(checkTarget(bad), null, bad);
   }
+});
+
+// ---------- canonical host ----------
+test('http, www and workers.dev redirect to https on the canonical host; localhost does not', () => {
+  const r = (u, m = 'GET') => canonicalRedirect(new URL(u), m, 'reentrylab.ai');
+  assert.equal(r('https://reentrylab.ai/api/health'), null);
+  assert.equal(r('http://localhost:8787/'), null);
+  const a = r('https://www.reentrylab.ai/assets/x.js?v=1');
+  assert.equal(a.status, 301);
+  assert.equal(a.headers.get('location'), 'https://reentrylab.ai/assets/x.js?v=1');
+  const b = r('https://reentry-lab.santos-derek.workers.dev/api/runs', 'POST');
+  assert.equal(b.status, 308);
+  assert.equal(b.headers.get('location'), 'https://reentrylab.ai/api/runs');
+  assert.equal(canonicalRedirect(new URL('https://x.workers.dev/'), 'GET', ''), null);
+  const c = r('http://reentrylab.ai/path');
+  assert.equal(c.status, 301);
+  assert.equal(c.headers.get('location'), 'https://reentrylab.ai/path');
+  assert.equal(canonicalRedirect(new URL('http://127.0.0.1:8787/'), 'GET', 'reentrylab.ai'), null);
 });

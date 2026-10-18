@@ -10,8 +10,16 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/auth/*"]
+    // Every request goes through the Worker first, so it can redirect http, www and workers.dev to https://CANONICAL_HOST.
+    "run_worker_first": true
   },
+  // Keep the workers.dev address alive so old links redirect to the custom domain; no per-version preview URLs.
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "reentrylab.ai", "custom_domain": true },
+    { "pattern": "www.reentrylab.ai", "custom_domain": true }
+  ],
   "durable_objects": {
     "bindings": [{ "name": "LAB", "class_name": "Lab" }]
   },
@@ -22,6 +30,8 @@
     { "name": "AUTH_LIMIT", "namespace_id": "4103", "simple": { "limit": 20, "period": 60 } }
   ],
   "vars": {
+    // The app's one public address. Requests to www.<this> or *.workers.dev are redirected here; localhost is left alone.
+    "CANONICAL_HOST": "reentrylab.ai",
     // Shown as "Support this project" in the app when set, e.g. a Patreon, GitHub Sponsors or Ko-fi page.
     "SUPPORT_URL": "https://github.com/sponsors/dereksantos",
     // Link to the public source repository, shown in Settings when set.

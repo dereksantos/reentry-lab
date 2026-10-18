@@ -9,7 +9,7 @@ A 3D atmospheric-entry simulator with a research agent built in. Fly a capsule, 
 It runs two ways, from the same code:
 
 - **On your machine** (`npm run dev`): the research agent is Claude Code running headless (`claude -p`) in this folder, using your own Claude Code login. The notebook is plain files in `notebook/`.
-- **Hosted on Cloudflare** (see [DEPLOY.md](DEPLOY.md)): visitors sign in with GitHub or Google, and the notebook is saved to their account.
+- **Hosted on Cloudflare** at **[reentrylab.ai](https://reentrylab.ai)** (to run your own, see [DEPLOY.md](DEPLOY.md)): visitors sign in with GitHub or Google, and the notebook is saved to their account.
   - **Bring your own key:** visitors use their own API key for Anthropic (Claude), OpenAI, xAI (Grok) or Google Gemini, or connect OpenRouter for many models.
   - **Agent in the browser:** the agent runs in the visitor's browser and calls the provider directly, so keys never reach the server.
 

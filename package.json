@@ -5,6 +5,7 @@
   "type": "module",
   "description": "3D atmospheric entry simulator with a Claude Code research agent",
   "license": "MIT",
+  "homepage": "https://reentrylab.ai",
   "repository": {
     "type": "git",
     "url": "https://github.com/dereksantos/reentry-lab.git"

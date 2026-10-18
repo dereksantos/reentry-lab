@@ -58,7 +58,13 @@ npm run deploy          # runs the tests, builds dist/, then wrangler deploy
 - `SUPPORT_URL`, for the "Support this project" button
 - `SOURCE_URL`, the link to this repository
 
-To use your own domain, add a route or custom domain in the Cloudflare dashboard, then add the new callback URLs to both OAuth apps.
+**Custom domain.** The public site runs at `reentrylab.ai`. To use your own domain:
+1. Add the domain to your Cloudflare account.
+2. Replace the two `routes` entries in `wrangler.jsonc` with your domain.
+3. Set `CANONICAL_HOST` to your domain, or to `""` for no redirects.
+4. Deploy, then add `https://<your domain>/auth/callback/<provider>` to each OAuth app.
+
+The Worker sends plain HTTP, `www.<domain>` and the workers.dev address to `https://<CANONICAL_HOST>`. Only set `CANONICAL_HOST` once the domain loads, or the workers.dev address will redirect to a site that doesn't work yet.
 
 ## Local testing of the hosted version
 

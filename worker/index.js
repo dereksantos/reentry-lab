@@ -5,6 +5,7 @@
 import { Lab } from './lab.js';
 import { handleAuth, getSession, enabledProviders } from './auth.js';
 import { proxyFetch } from './fetch.js';
+import { canonicalRedirect } from './canonical.js';
 
 export { Lab };
 
@@ -18,6 +19,8 @@ const json = (status, body, extra = {}) => Response.json(body, { status, headers
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const moved = canonicalRedirect(url, request.method, env.CANONICAL_HOST);
+    if (moved) return moved;
     try {
       if (url.pathname.startsWith('/auth/')) {
         const { success } = await env.AUTH_LIMIT.limit({ key: request.headers.get('cf-connecting-ip') || 'unknown' });

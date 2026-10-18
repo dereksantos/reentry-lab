@@ -60,7 +60,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-#app { position: relative; height: 100vh; min-height: 640px; overflow: hidden; }
+/* --right-res is the space the layout keeps free for the research panel; below 1240 px the panel overlays instead. */
+#app { position: relative; height: 100vh; height: 100dvh; min-height: 640px; overflow: hidden; --right-res: var(--right-w); }
 #app > .viewport { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 55%, #0a1424 0%, var(--bg) 72%); }
 #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .labels { position: absolute; inset: 0; pointer-events: none; }
@@ -72,11 +73,11 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .left { position: absolute; top: calc(var(--top-h) + 2 * var(--gap)); left: var(--gap); bottom: var(--gap); width: var(--left-w); z-index: 3; overflow-y: auto; scrollbar-width: none; display: grid; align-content: start; gap: 10px; }
 .left::-webkit-scrollbar { display: none; }
 .right { position: absolute; top: calc(var(--top-h) + 2 * var(--gap)); right: var(--gap); bottom: var(--gap); width: var(--right-w); z-index: 3; border-radius: 16px; }
-.bottom { position: absolute; left: calc(var(--left-w) + 2 * var(--gap)); right: calc(var(--right-w) + 2 * var(--gap)); bottom: var(--gap); height: var(--dock-h); z-index: 3; border-radius: 16px; }
+.bottom { position: absolute; left: calc(var(--left-w) + 2 * var(--gap)); right: calc(var(--right-res) + 2 * var(--gap)); bottom: var(--gap); height: var(--dock-h); z-index: 3; border-radius: 16px; }
 .hud { position: absolute; top: calc(var(--top-h) + 2 * var(--gap)); left: 50%; z-index: 2; }
-.view-tools { position: absolute; bottom: calc(var(--dock-h) + var(--inset-h) + 3 * var(--gap)); right: calc(var(--right-w) + 3 * var(--gap)); z-index: 2; }
+.view-tools { position: absolute; bottom: calc(var(--dock-h) + var(--inset-h) + 3 * var(--gap)); right: calc(var(--right-res) + 3 * var(--gap)); z-index: 2; }
 .legend { position: absolute; left: calc(var(--left-w) + 3 * var(--gap)); bottom: calc(var(--dock-h) + 2 * var(--gap)); z-index: 2; }
-.inset-frame { position: absolute; right: calc(var(--right-w) + 3 * var(--gap)); bottom: calc(var(--dock-h) + 2 * var(--gap)); height: var(--inset-h); aspect-ratio: 1.6; z-index: 2; }
+.inset-frame { position: absolute; right: calc(var(--right-res) + 3 * var(--gap)); bottom: calc(var(--dock-h) + 2 * var(--gap)); height: var(--inset-h); aspect-ratio: 1.6; z-index: 2; }
 #app.no-left { --left-w: -12px; }
 #app.no-left .left { display: none; }
 #app.no-right { --right-w: -12px; }
@@ -96,7 +97,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 #rightTab { right: calc(var(--gap) + var(--right-w) + 4px); }
 #app.no-left #leftTab { left: 4px; }
 #app.no-right #rightTab { right: 4px; }
-#bottomTab { width: 64px; height: 22px; bottom: calc(var(--gap) + var(--dock-h) + 4px); left: calc(var(--left-w) + 2 * var(--gap) + (100% - var(--left-w) - var(--right-w) - 4 * var(--gap)) / 2); margin-left: -32px; }
+#bottomTab { width: 64px; height: 22px; bottom: calc(var(--gap) + var(--dock-h) + 4px); left: calc(var(--left-w) + 2 * var(--gap) + (100% - var(--left-w) - var(--right-res) - 4 * var(--gap)) / 2); margin-left: -32px; }
 
 /* ---------- top bar ---------- */
 .topbar { display: flex; align-items: center; gap: 14px; padding: 0 10px 0 16px; min-width: 0; }
@@ -207,7 +208,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px 
 .derived b { font-family: var(--font-mono); font-weight: 500; color: var(--ink); }
 
 /* ---------- over the globe ---------- */
-.hud { transform: translateX(calc(-50% + (var(--left-w) - var(--right-w)) / 2)); display: grid; justify-items: center; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.hud { transform: translateX(calc(-50% + (var(--left-w) - var(--right-res)) / 2)); display: grid; justify-items: center; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .hud .strip, .hud .more { background: var(--glass); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5); backdrop-filter: blur(var(--blur)) saturate(1.5); border: 1px solid rgba(255,255,255,.09); box-shadow: 0 12px 40px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06); }
 .hud .strip { display: flex; align-items: stretch; border-radius: 14px; }
 .hud .clock { padding: 10px 18px 10px 16px; border-right: 1px solid rgba(255,255,255,.08); display: grid; gap: 5px; align-content: center; font: 600 24px/1 var(--font-mono); letter-spacing: 0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -341,35 +342,97 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px 
 .ride-foot .btn svg { width: 18px; height: 18px; }
 .ride-about { flex-basis: 100%; margin: -6px 0 0; font-size: 11.5px; color: #6f8399; }
 @media (max-width: 980px) {
-  .ride { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; overflow-y: auto; }
-  .ride-mfd { grid-row: auto; grid-column: auto; margin: 0 14px 14px; }
+  /* One scrolling column: header, window, controls, instruments. */
+  .ride { display: flex; flex-direction: column; overflow-y: auto; }
+  .ride > * { flex-shrink: 0; }
+  .ride-head { min-height: 64px; }
+  .ride-mfd { order: 4; margin: 0 14px 14px; }
+  .ride-foot { order: 3; padding-top: 10px; }
   .ride-hint { display: none; }
+  /* Size from the viewport, not the grid cell, so the row grows to fit the window. */
+  .porthole { width: min(640px, calc(100vw - 36px)); }
 }
 @media (prefers-reduced-motion: reduce) { .porthole * { animation: none !important; } }
 
 /* ---------- smaller screens ---------- */
 @media (max-width: 1500px) { :root { --right-w: 340px; --left-w: 300px; } .brand-sub { display: none; } }
 @media (max-width: 1240px) {
-  :root { --right-w: 0px; }
-  .right, #rightTab { display: none !important; }
+  #app { --right-res: -12px; }
+  .right { z-index: 5; --glass: var(--glass-strong); }
   .checks { display: none; }
 }
-@media (max-width: 820px) {
-  body { overflow: auto; }
-  #app { height: auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; gap: 10px; padding: calc(62vh) 10px 10px; }
-  #app > .viewport { position: absolute; top: 0; left: 0; right: 0; height: 62vh; bottom: auto; }
-  .topbar { left: 8px; right: 8px; top: 8px; height: auto; min-height: 52px; flex-wrap: wrap; padding: 6px 8px 6px 12px; }
-  .preset-btn { min-width: 0; flex: 1; }
-  .hangar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .left, .bottom, .legend { position: relative; inset: auto; width: auto; height: auto; transform: none; }
-  .left { overflow: visible; }
-  .bottom { height: 420px; }
-  .charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hud { top: auto; bottom: calc(100% - 62vh + 10px); left: 50%; transform: translateX(-50%); position: absolute; }
-  .hud .r:nth-child(n+5) { display: none; }
-  .view-tools { top: 76px; bottom: auto; right: 10px; }
-  .inset-frame, .edge-tab { display: none !important; }
-  .brand-sub, #pinBtn, .top-actions .divider, #focusBtn { display: none; }
+
+/* ---------- phones (main.js sets .mobile for narrow or short screens) ----------
+   The globe stays full screen. A tab bar at the bottom opens one panel at a time as a sheet;
+   the playback bar sits just above the tab bar so play and seek are always in reach. */
+.mtabs { display: none; }
+#app.mobile { --gap: 8px; --top-h: 50px; --tabbar-h: calc(56px + env(safe-area-inset-bottom)); --play-h: 52px; --sheet-h: min(60dvh, calc(100dvh - var(--top-h) - var(--tabbar-h) - var(--play-h) - 70px)); min-height: 0; }
+#app.mobile .topbar { gap: 8px; padding: 0 6px 0 10px; border-radius: 14px; }
+#app.mobile .brand-name, #app.mobile .brand-sub, #app.mobile #pinBtn, #app.mobile #supportLink, #app.mobile .top-actions .divider, #app.mobile .checks, #app.mobile .computing { display: none !important; }
+#app.mobile .preset-btn { min-width: 0; max-width: none; flex: 1; height: 40px; gap: 8px; }
+#app.mobile .preset-btn .pthumb { width: 42px; height: 28px; }
+#app.mobile .top-actions .btn { height: 36px; padding: 0 10px; }
+#app.mobile .edge-tab, #app.mobile .legend { display: none !important; }
+#app.mobile .hud { left: var(--gap); right: var(--gap); transform: none; top: calc(var(--top-h) + 2 * var(--gap)); justify-items: stretch; }
+#app.mobile .hud .strip { overflow-x: auto; scrollbar-width: none; border-radius: 12px; }
+#app.mobile .hud .clock { font-size: 18px; padding: 8px 12px; }
+#app.mobile .hud .r { min-width: 0; padding: 8px 10px; flex: 1; }
+#app.mobile .hud .r b { font-size: 14px; }
+#app.mobile .hud .r:nth-child(4), #app.mobile .hud .r:nth-child(5) { display: none; }
+#app.mobile .hud .more { max-width: none; }
+#app.mobile .view-tools { top: calc(var(--top-h) + 3 * var(--gap) + 52px); bottom: auto; left: var(--gap); right: auto; flex-direction: column; }
+#app.mobile .view-tools .sep { width: 24px; height: 1px; margin: 2px 0; }
+#app.mobile .inset-frame { top: calc(var(--top-h) + 3 * var(--gap) + 52px); bottom: auto; right: var(--gap); height: 96px; }
+#app.mobile .inset-label { font-size: 8.5px; }
+@media (max-height: 500px) {
+  #app.mobile .view-tools { flex-direction: row; }
+  #app.mobile .view-tools .sep { width: 1px; height: 24px; margin: 0 2px; }
+  #app.mobile .inset-frame { height: 80px; }
+}
+#app.mobile .ride-btn { display: none; }
+/* Panels become sheets above the playback bar. */
+#app.mobile .left, #app.mobile .right { display: none !important; top: auto; left: 0; right: 0; width: auto; bottom: calc(var(--tabbar-h) + var(--play-h)); height: var(--sheet-h); border-radius: 18px 18px 0 0; z-index: 5; }
+#app.mobile .left { padding: 10px 10px 4px; background: var(--glass-strong); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5); backdrop-filter: blur(var(--blur)) saturate(1.5); border: 1px solid rgba(255,255,255,.09); border-bottom: 0; overflow-y: auto; }
+#app.mobile .right { --glass: var(--glass-strong); border-bottom: 0; }
+#app.mobile[data-sheet="settings"] .left { display: grid !important; }
+#app.mobile[data-sheet="research"] .right { display: grid !important; }
+#app.mobile .bottom { display: grid !important; left: 0; right: 0; bottom: var(--tabbar-h); height: var(--play-h); border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; --glass: var(--glass-strong); z-index: 5; }
+#app.mobile .bottom .charts { display: none !important; }
+#app.mobile[data-sheet="plots"] .bottom { height: calc(var(--play-h) + var(--sheet-h)); border-radius: 18px 18px 0 0; }
+#app.mobile[data-sheet="plots"] .bottom .charts { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 150px; overflow-y: auto; }
+#app.mobile[data-sheet="plots"] .chart:last-child { grid-column: span 2; }
+#app.mobile .timeline { gap: 8px; padding: 0 10px; }
+#app.mobile .tclock { min-width: 0; font-size: 11px; }
+#app.mobile .track .ev span { display: none; }
+#app.mobile .mtabs { display: flex; position: absolute; left: 0; right: 0; bottom: 0; height: var(--tabbar-h); padding-bottom: env(safe-area-inset-bottom); z-index: 6; border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; --glass: var(--glass-strong); }
+.mtabs button { flex: 1; display: grid; place-items: center; align-content: center; gap: 3px; background: none; border: 0; color: var(--muted); font: 600 11px/1 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.mtabs button svg { width: 20px; height: 20px; }
+.mtabs button[aria-pressed="true"] { color: #fff; }
+.mtabs button[aria-pressed="true"] svg { color: var(--accent); }
+#app.focus .mtabs { display: none !important; }
+#app.mobile .hangar { left: var(--gap) !important; right: var(--gap); width: auto; top: calc(var(--top-h) + 2 * var(--gap)); max-height: calc(100dvh - var(--top-h) - 2 * var(--gap) - var(--tabbar-h)); padding: 14px; }
+#app.mobile .hangar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#app.mobile .hpic { height: 80px; }
+/* iOS zooms the page when a focused field's text is under 16 px. */
+#app.mobile textarea, #app.mobile input[type="number"], #app.mobile select { font-size: 16px; }
+
+/* Ride along on a short (landscape phone) screen: window and instruments side by side, no extras. */
+@media (max-height: 500px) {
+  .ride { grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: 48px minmax(0, 1fr) auto; overflow: hidden; }
+  .ride-head { padding: 0 12px; }
+  .ride-mfd { grid-row: 2 / 4; grid-column: 2; margin: 8px 8px 8px 0; }
+  .mfd-top { padding: 10px 14px; } .mfd-clock { font-size: 24px; }
+  .mfd-readouts div { padding: 8px 14px; } .mfd-readouts b { font-size: 17px; }
+  .mfd-bars { padding: 10px 14px; gap: 8px; }
+  .mfd-events, .ride-hint, .ride-about { display: none; }
+  .ride-win { padding: 6px; }
+  .porthole { width: min(calc(100vw - 340px), calc(100dvh - 130px)); }
+  .ride-foot { padding: 0 12px 8px; gap: 10px; }
+  .ride-foot .play.big { width: 44px; height: 44px; }
+}
+@media (max-width: 600px) {
+  .ride-head { gap: 10px; padding: 0 12px; }
+  .ride-foot .btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 }
 @media (prefers-reduced-motion: reduce) { .pgroup .chev { transition: none; } }
 

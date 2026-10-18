@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Reentry Lab</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -77,6 +77,13 @@
       <div class="timeline" id="timeline"></div>
       <div class="charts" id="charts"></div>
     </section>
+
+    <nav class="mtabs glass" id="mtabs" aria-label="Panels">
+      <button type="button" data-sheet="plots" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16l4-6 3 3 5-8"/></svg>Plots</button>
+      <button type="button" data-sheet="settings" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6"/></svg>Settings</button>
+      <button type="button" data-sheet="research" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Research</button>
+      <button type="button" id="mRideBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M8 12a4 4 0 1 0 8 0a4 4 0 1 0-8 0"/></svg>Ride along</button>
+    </nav>
 
     <aside class="right glass" id="researchPanel" aria-label="Research">
       <nav class="tabs" role="tablist">

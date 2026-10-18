@@ -314,14 +314,40 @@ function setLayout(key, value) {
 function updateInsets() {
   const cr = canvas.getBoundingClientRect();
   const over = (sel) => { const el = document.querySelector(sel); return el && el.offsetParent && getComputedStyle(el).position === 'absolute' ? el.getBoundingClientRect() : null; };
-  const L = over('.left'), R = over('.right'), T = over('.topbar'), B = over('.bottom'), H = over('.hud');
+  const T = over('.topbar'), H = over('.hud');
+  const top = Math.max(T ? T.bottom - cr.top : 0, H ? H.bottom - cr.top : 0);
+  if (app.classList.contains('mobile')) {
+    // Phones: everything at the bottom (tab bar, playback bar, open sheet) stacks, so only the highest edge matters.
+    const tops = ['.mtabs', '.bottom', '.left', '.right'].map(over).filter(Boolean).map((r) => r.top);
+    globe.setInsets({ left: 0, right: 0, top, bottom: tops.length ? Math.max(0, cr.bottom - Math.min(...tops)) : 0 });
+    return;
+  }
+  const L = over('.left'), R = over('.right'), B = over('.bottom');
+  // Below 1240 px the research panel overlays the globe instead of taking space from it.
+  const rightReserved = R && getComputedStyle(app).getPropertyValue('--right-res').trim() !== '-12px';
   globe.setInsets({
     left: L ? Math.max(0, L.right - cr.left) : 0,
-    right: R ? Math.max(0, cr.right - R.left) : 0,
-    top: Math.max(T ? T.bottom - cr.top : 0, H ? H.bottom - cr.top : 0),
+    right: rightReserved ? Math.max(0, cr.right - R.left) : 0,
+    top,
     bottom: B ? Math.max(0, cr.bottom - B.top) : 0
   });
 }
+
+// Phones (narrow, or short like a landscape phone) get the tab-bar layout; see "phones" in styles.css.
+const mobileQuery = window.matchMedia('(max-width: 820px), (max-height: 500px)');
+function setSheet(name) {
+  app.dataset.sheet = name || '';
+  document.querySelectorAll('#mtabs [data-sheet]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sheet === name)));
+  requestAnimationFrame(updateInsets);
+}
+function applyMobile() {
+  app.classList.toggle('mobile', mobileQuery.matches);
+  setSheet('');
+}
+mobileQuery.addEventListener('change', applyMobile);
+document.querySelectorAll('#mtabs [data-sheet]').forEach((b) => b.addEventListener('click', () => setSheet(app.dataset.sheet === b.dataset.sheet ? '' : b.dataset.sheet)));
+on('open-hangar', () => app.classList.contains('mobile') && setSheet(''));
+
 $('focusBtn').addEventListener('click', () => setLayout('focus', !ui.focus));
 $('leftTab').addEventListener('click', () => setLayout('noLeft', !ui.noLeft));
 $('rightTab').addEventListener('click', () => setLayout('noRight', !ui.noRight));
@@ -354,6 +380,8 @@ warmSnapshots(['capsule', 'probe', 'inflatable', 'glider']);
 buildHangar($('presetBtn'), $('hangar'), loadPreset);
 buildRide($('ride'));
 $('rideBtn').addEventListener('click', openRide);
+$('mRideBtn').addEventListener('click', openRide);
+applyMobile();
 buildParams($('paramPanel'));
 buildTimeline($('timeline'));
 setLayout('focus', !!ui.focus);

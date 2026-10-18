@@ -11,6 +11,41 @@ const PROFILES = {
   inflatable: v2([[0, 0.22], [0.35, 0.18], [2.1, -0.5], [2.05, -0.64], [1.2, -0.6], [0.35, -0.62], [0.3, -1.0], [0, -1.04]])
 };
 
+// Vehicle body meshes in the flight frame (+X into the flow). Shared by the vehicle camera and the
+// Hangar snapshots. `tilt` is the resting rotation about Z (the glider flies belly-first).
+export function buildBody(shape, hullMat, shieldMat) {
+  const group = new THREE.Group();
+  if (shape === 'glider') {
+    const fus = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 2.4, 8, 16), hullMat);
+    fus.rotation.z = Math.PI / 2;
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0.9, 0); wingShape.lineTo(-1.3, 1.5); wingShape.lineTo(-1.5, 1.5); wingShape.lineTo(-1.5, -1.5); wingShape.lineTo(-1.3, -1.5); wingShape.closePath();
+    const wing = new THREE.Mesh(new THREE.ExtrudeGeometry(wingShape, { depth: 0.08, bevelEnabled: false }), hullMat);
+    wing.rotation.x = Math.PI / 2;
+    wing.position.y = -0.12;
+    const belly = new THREE.Mesh(new THREE.ExtrudeGeometry(wingShape, { depth: 0.02, bevelEnabled: false }), shieldMat);
+    belly.rotation.x = Math.PI / 2;
+    belly.position.y = -0.2;
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.05), hullMat);
+    fin.position.set(-1.2, 0.45, 0);
+    group.add(fus, wing, belly, fin);
+    return { group, tilt: 0.68 }; // ~40° angle of attack, belly into the flow
+  }
+  // LatheGeometry wants the outline running up the axis for outward-facing normals; ours run nose to tail.
+  const prof = [...(PROFILES[shape] || PROFILES.capsule)].reverse();
+  const geo = new THREE.LatheGeometry(prof, 64);
+  geo.rotateZ(-Math.PI / 2);
+  // Split material: forebody (heat shield) vs backshell by vertex x
+  const shield = new THREE.Mesh(geo, hullMat);
+  // A flattened spherical cap wide enough to cover the whole forebody, sitting just in front of the hull.
+  const front = new THREE.Mesh(new THREE.SphereGeometry(shape === 'inflatable' ? 2.12 : 1.02, 64, 24, 0, Math.PI * 2, 0, shape === 'inflatable' ? 1.31 : 1.37), shieldMat);
+  front.rotation.z = -Math.PI / 2;
+  front.scale.set(shape === 'probe' ? 0.45 : 0.22, 1, 1);
+  front.position.x = shape === 'probe' ? 0.02 : 0.0;
+  group.add(shield, front);
+  return { group, tilt: 0 };
+}
+
 function plasmaMaterial() {
   return new THREE.ShaderMaterial({
     uniforms: { color: { value: new THREE.Color(1, 0.5, 0.2) }, intensity: { value: 0 }, time: { value: 0 } },
@@ -103,36 +138,14 @@ export class VehicleView {
     if (shape === this.shape) return;
     this.shape = shape;
     this.body.clear();
+    const { group, tilt } = buildBody(shape, this.hullMat, this.shieldMat);
+    this.body.add(...group.children);
+    this.body.rotation.z = tilt;
     if (shape === 'glider') {
-      const fus = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 2.4, 8, 16), this.hullMat);
-      fus.rotation.z = Math.PI / 2;
-      const wingShape = new THREE.Shape();
-      wingShape.moveTo(0.9, 0); wingShape.lineTo(-1.3, 1.5); wingShape.lineTo(-1.5, 1.5); wingShape.lineTo(-1.5, -1.5); wingShape.lineTo(-1.3, -1.5); wingShape.closePath();
-      const wing = new THREE.Mesh(new THREE.ExtrudeGeometry(wingShape, { depth: 0.08, bevelEnabled: false }), this.hullMat);
-      wing.rotation.x = Math.PI / 2;
-      wing.position.y = -0.12;
-      const belly = new THREE.Mesh(new THREE.ExtrudeGeometry(wingShape, { depth: 0.02, bevelEnabled: false }), this.shieldMat);
-      belly.rotation.x = Math.PI / 2;
-      belly.position.y = -0.2;
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.05), this.hullMat);
-      fin.position.set(-1.2, 0.45, 0);
-      this.body.add(fus, wing, belly, fin);
-      this.body.rotation.z = 0.68; // ~40° angle of attack, belly into the flow
       this.plasma.position.set(0.3, -0.35, 0);
       this.plasma.scale.set(0.8, 1.9, 1.9);
       this.plasma.rotation.set(0, 0, -Math.PI / 2 + 0.68);
     } else {
-      const prof = PROFILES[shape] || PROFILES.capsule;
-      const geo = new THREE.LatheGeometry(prof, 64);
-      geo.rotateZ(-Math.PI / 2);
-      // Split material: forebody (heat shield) vs backshell by vertex x
-      const shield = new THREE.Mesh(geo, this.hullMat);
-      const front = new THREE.Mesh(new THREE.SphereGeometry(shape === 'inflatable' ? 2.12 : 1.02, 48, 16, 0, Math.PI * 2, 0, shape === 'probe' ? 0.9 : 0.62), this.shieldMat);
-      front.rotation.z = -Math.PI / 2;
-      front.scale.set(shape === 'probe' ? 0.45 : 0.22, 1, 1);
-      front.position.x = shape === 'probe' ? 0.02 : 0.0;
-      this.body.add(shield, front);
-      this.body.rotation.z = 0;
       const s = shape === 'inflatable' ? 2.3 : 1.15;
       this.plasma.position.set(0.12, 0, 0);
       this.plasma.scale.set(0.55 * s, s, s);

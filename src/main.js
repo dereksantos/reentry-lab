@@ -16,6 +16,9 @@ import { heatGradient } from './colormap.js';
 import { Globe } from './three/globe.js';
 import { VehicleView } from './three/vehicleView.js';
 import { buildParams, sync as syncParams } from './ui/params.js';
+import { buildHangar, updateHangar, openHangar } from './ui/hangar.js';
+import { warmSnapshots } from './three/snapshots.js';
+import { buildRide, openRide, closeRide, updateRide, isRideOpen } from './ui/ride.js';
 import { buildTimeline, updateTimelineRun, updateTimelineHead, setPlaying } from './ui/timeline.js';
 import { renderHud } from './ui/hud.js';
 import { buildCharts, updateCharts, redrawPlayhead } from './ui/charts.js';
@@ -33,20 +36,16 @@ let jumpToPeak = true;
 let heatMax = 100;
 
 // ---------- presets ----------
-const presetSel = $('presetSelect');
-presetSel.innerHTML = PRESETS.map((p) => `<option value="${p.key}">${p.name}</option>`).join('');
-presetSel.value = store.presetKey;
-presetSel.addEventListener('change', () => loadPreset(presetSel.value));
 function loadPreset(key) {
   const p = PRESETS.find((x) => x.key === key);
   store.presetKey = key;
   store.params = clone(p.params);
-  presetSel.value = key;
   jumpToPeak = true;
   syncParams();
   emit('params');
 }
-on('preset', (key) => { presetSel.value = key; jumpToPeak = true; });
+on('preset', () => { jumpToPeak = true; });
+on('open-hangar', openHangar);
 
 function runLabel(params = store.params) {
   const p = PRESETS.find((x) => x.key === store.presetKey);
@@ -57,6 +56,7 @@ function runLabel(params = store.params) {
 // ---------- simulation ----------
 on('params', () => {
   persist();
+  updateHangar(runLabel());
   runLatest(store.params, onResult, (b) => ($('computing').hidden = !b));
 });
 on('params-external', () => { syncParams(); emit('params'); });
@@ -258,8 +258,13 @@ function loop(now) {
     if (store.playhead >= T) { store.playhead = T; setPlaying(false); }
     refreshFrame(false);
   }
-  globe.render();
-  if (current) {
+  if (isRideOpen()) {
+    // The ride-along view covers the globe, so skip drawing it.
+    updateRide(current, store.result, now);
+  } else {
+    globe.render();
+  }
+  if (current && !isRideOpen()) {
     vview.update(current, store.result.params, store.result.params.planet);
     const fr = $('insetFrame').getBoundingClientRect(), cr = canvas.getBoundingClientRect();
     vview.render(globe.renderer, { x: fr.left - cr.left, y: fr.top - cr.top, w: fr.width, h: fr.height }, cr.height);
@@ -274,11 +279,8 @@ document.querySelectorAll('[data-cam]').forEach((b) => b.addEventListener('click
   globe.setMode(m);
   document.querySelectorAll('[data-cam]').forEach((x) => x.dataset.cam !== 'fit' && x.setAttribute('aria-pressed', String(x.dataset.cam === m)));
 }));
-const exag = $('exag');
-exag.value = store.exag;
-$('exagOut').textContent = store.exag;
-exag.addEventListener('input', () => {
-  store.exag = Number(exag.value);
+function setExag(v) {
+  store.exag = Math.max(1, Math.min(40, v));
   $('exagOut').textContent = store.exag;
   if (store.result) {
     globe.setRun(store.result, store.exag, heatMax);
@@ -286,7 +288,44 @@ exag.addEventListener('input', () => {
     refreshFrame(true);
   }
   persist();
-});
+}
+$('exagOut').textContent = store.exag;
+$('exagUp').addEventListener('click', () => setExag(store.exag < 4 ? store.exag + 1 : store.exag + 2));
+$('exagDown').addEventListener('click', () => setExag(store.exag <= 4 ? store.exag - 1 : store.exag - 2));
+
+// ---------- panel layout: focus view, research panel, plots ----------
+const app = $('app');
+const ui = (() => { try { return JSON.parse(localStorage.getItem('reentry-ui')) || {}; } catch { return {}; } })();
+function setLayout(key, value) {
+  ui[key] = value;
+  try { localStorage.setItem('reentry-ui', JSON.stringify(ui)); } catch {}
+  app.classList.toggle('focus', !!ui.focus);
+  app.classList.toggle('no-left', !!ui.noLeft);
+  app.classList.toggle('no-right', !!ui.noRight);
+  app.classList.toggle('no-plots', !!ui.noPlots);
+  $('focusBtn').setAttribute('aria-pressed', String(!!ui.focus));
+  for (const [id, key, name] of [['leftTab', 'noLeft', 'settings ([)'], ['rightTab', 'noRight', 'research (])'], ['bottomTab', 'noPlots', 'plots']]) {
+    $(id).setAttribute('aria-expanded', String(!ui[key]));
+    $(id).title = `${ui[key] ? 'Show' : 'Hide'} ${name}`;
+  }
+  requestAnimationFrame(updateInsets);
+}
+// How much of the canvas each floating panel covers, so the globe is framed in the open area.
+function updateInsets() {
+  const cr = canvas.getBoundingClientRect();
+  const over = (sel) => { const el = document.querySelector(sel); return el && el.offsetParent && getComputedStyle(el).position === 'absolute' ? el.getBoundingClientRect() : null; };
+  const L = over('.left'), R = over('.right'), T = over('.topbar'), B = over('.bottom'), H = over('.hud');
+  globe.setInsets({
+    left: L ? Math.max(0, L.right - cr.left) : 0,
+    right: R ? Math.max(0, cr.right - R.left) : 0,
+    top: Math.max(T ? T.bottom - cr.top : 0, H ? H.bottom - cr.top : 0),
+    bottom: B ? Math.max(0, cr.bottom - B.top) : 0
+  });
+}
+$('focusBtn').addEventListener('click', () => setLayout('focus', !ui.focus));
+$('leftTab').addEventListener('click', () => setLayout('noLeft', !ui.noLeft));
+$('rightTab').addEventListener('click', () => setLayout('noRight', !ui.noRight));
+$('bottomTab').addEventListener('click', () => setLayout('noPlots', !ui.noPlots));
 
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
@@ -294,7 +333,7 @@ document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('cli
 }));
 on('runs-changed', () => {});
 
-new ResizeObserver(() => globe.resize()).observe($('viewport'));
+new ResizeObserver(() => updateInsets()).observe($('viewport'));
 
 // ---------- boot ----------
 const health = await loadHealth();
@@ -311,15 +350,25 @@ if (isCloud()) {
     emit('agent-settings');
   }).catch((e) => toast(e.message, 5000));
 }
+warmSnapshots(['capsule', 'probe', 'inflatable', 'glider']);
+buildHangar($('presetBtn'), $('hangar'), loadPreset);
+buildRide($('ride'));
+$('rideBtn').addEventListener('click', openRide);
 buildParams($('paramPanel'));
 buildTimeline($('timeline'));
+setLayout('focus', !!ui.focus);
 buildCharts($('charts'));
 buildAgent($('panel-agent'), buildContext);
 buildLibrary($('panel-runs'), $('panel-notebook'));
-globe.resize();
+updateInsets();
 emit('params');
 requestAnimationFrame(loop);
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isRideOpen()) { closeRide(); return; }
   if (e.target.closest('input, textarea, select')) return;
   if (e.key === ' ') { e.preventDefault(); setPlaying(!store.playing); }
+  if (e.metaKey || e.ctrlKey || e.altKey || isRideOpen()) return;
+  if (e.key === 'f' || e.key === 'F') setLayout('focus', !ui.focus);
+  if (e.key === '[') setLayout('noLeft', !ui.noLeft);
+  if (e.key === ']') setLayout('noRight', !ui.noRight);
 });

@@ -8,6 +8,7 @@ import { anthropicAdapter } from '../src/agent/anthropic.js';
 import { runCommand, sweepCommand, rangeValues, baseFromPreset } from '../sim/commands.js';
 import { checkTarget } from '../worker/fetch.js';
 import { canonicalRedirect } from '../worker/canonical.js';
+import { keyProblem } from '../src/agent/providers.js';
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; });
@@ -214,4 +215,14 @@ test('http, www and workers.dev redirect to https on the canonical host; localho
   assert.equal(c.headers.get('location'), 'https://reentrylab.ai/path');
   assert.equal(canonicalRedirect(new URL('http://127.0.0.1:8787/'), 'GET', 'reentrylab.ai'), null);
   assert.equal(canonicalRedirect(new URL('http://reentrylab.ai/'), 'GET', ''), null, 'empty CANONICAL_HOST (wrangler dev) turns redirects off');
+});
+
+// ---------- key checks ----------
+test('pasted text that is not an API key is refused; an unusual prefix only warns', () => {
+  assert.match(keyProblem('openrouter', 'sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder').error, /isn't an API key/);
+  assert.match(keyProblem('anthropic', 'sk-ant-abc•').error, /isn't an API key/);
+  assert.match(keyProblem('openrouter', 'sk-proj-abc').warning, /usually start with “sk-or-”/);
+  assert.equal(keyProblem('openrouter', 'sk-or-v1-abc123'), null);
+  assert.equal(keyProblem('xai', 'xai-abc'), null);
+  assert.equal(keyProblem('openrouter', ''), null);
 });

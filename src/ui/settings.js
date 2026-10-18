@@ -5,7 +5,7 @@ import { toast, emit } from '../store.js';
 import { getHealth, api } from '../backend.js';
 import {
   PROVIDERS, agentSettings, saveSettings, getKey, setKey, setRemember, forgetAllKeys,
-  currentProvider, currentModel, listModels, connectOpenRouter
+  currentProvider, currentModel, listModels, connectOpenRouter, keyProblem
 } from '../agent/providers.js';
 
 const modelCache = {};
@@ -13,7 +13,10 @@ const modelCache = {};
 // Store what's in the key field; the field shows bullets for a key that's already saved.
 function commitKey(input, prov) {
   const v = input.value.trim();
-  if (!v || v.startsWith('•') || v === getKey(prov)) return false;
+  const msg = input.closest('.field')?.querySelector('.key-msg');
+  const problem = v && !v.startsWith('•') ? keyProblem(prov, v) : null;
+  if (msg) { msg.textContent = problem ? problem.error || problem.warning : ''; msg.dataset.s = problem?.error ? 'crit' : 'warn'; }
+  if (!v || v.startsWith('•') || problem?.error || v === getKey(prov)) return false;
   setKey(prov, v);
   delete modelCache[prov];
   return true;
@@ -63,6 +66,7 @@ export function openSettings() {
           <label class="field">API key <a href="${p.keyUrl}" target="_blank" rel="noopener noreferrer">get one</a>
             <span class="row"><input id="setKey" type="password" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(p.keyHint)}" value="${key ? '••••••••••••' : ''}">
             ${key ? '<button class="btn small" type="button" data-a="clearkey">Remove</button>' : ''}</span>
+            <span class="key-msg" role="status">${escapeHtml((key && keyProblem(prov, key)) ? (keyProblem(prov, key).error ? 'The saved key isn’t valid: ' + keyProblem(prov, key).error : keyProblem(prov, key).warning) : '')}</span>
           </label>
           <label class="field">Model
             <span class="row"><select id="setModel"><option value="${escapeHtml(currentModel())}">${escapeHtml(currentModel() || 'Load the model list →')}</option></select>
@@ -89,6 +93,7 @@ export function openSettings() {
       const v = keyInput.value.trim();
       if (!v || v.startsWith('•')) return;
       commitKey(keyInput, prov);
+      if (keyProblem(prov, v)?.error) return;
       toast('Key saved in this browser');
       render();
       loadModels(prov, v);

@@ -1,7 +1,7 @@
 // Hosted-mode research agent: one chat turn, run in the browser with the user's own key.
 // Emits the same events as POST /api/agent on the local server (request/init/block/text/tool/tool_result/status/done/error).
 
-import { PROVIDERS, agentSettings, currentProvider, currentModel, getKey } from './providers.js';
+import { PROVIDERS, agentSettings, currentProvider, currentModel, getKey, keyProblem } from './providers.js';
 import { buildTools } from './tools.js';
 import { systemPrompt } from './prompt.js';
 import { runAgentLoop } from './loop.js';
@@ -10,6 +10,8 @@ import { api, signedIn } from '../backend.js';
 export function cloudAgentReady() {
   const provider = currentProvider();
   if (!getKey(provider)) return { ok: false, reason: `Add your ${PROVIDERS[provider].label} API key in Settings to start.` };
+  const problem = keyProblem(provider, getKey(provider));
+  if (problem?.error) return { ok: false, reason: `The saved ${PROVIDERS[provider].label} key isn't valid. ${problem.error}` };
   if (!currentModel()) return { ok: false, reason: `Choose a ${PROVIDERS[provider].label} model in Settings.` };
   return { ok: true, label: `${currentModel()} · ${PROVIDERS[provider].label.replace(/ \(.*\)$/, '')}` };
 }

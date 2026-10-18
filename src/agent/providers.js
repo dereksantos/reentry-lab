@@ -5,23 +5,23 @@
 export const PROVIDERS = {
   anthropic: {
     label: 'Anthropic (Claude)', kind: 'anthropic', defaultModel: 'claude-opus-5-5',
-    keyUrl: 'https://platform.claude.com/settings/keys', keyHint: 'sk-ant-…', webSearch: 'built in'
+    keyUrl: 'https://platform.claude.com/settings/keys', keyHint: 'sk-ant-…', keyPrefix: 'sk-ant-', webSearch: 'built in'
   },
   openai: {
     label: 'OpenAI', kind: 'openai', baseUrl: 'https://api.openai.com/v1',
-    keyUrl: 'https://platform.openai.com/api-keys', keyHint: 'sk-…', webSearch: null
+    keyUrl: 'https://platform.openai.com/api-keys', keyHint: 'sk-…', keyPrefix: 'sk-', webSearch: null
   },
   xai: {
     label: 'xAI (Grok)', kind: 'openai', baseUrl: 'https://api.x.ai/v1',
-    keyUrl: 'https://console.x.ai/', keyHint: 'xai-…', webSearch: null
+    keyUrl: 'https://console.x.ai/', keyHint: 'xai-…', keyPrefix: 'xai-', webSearch: null
   },
   gemini: {
     label: 'Google Gemini', kind: 'openai', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    keyUrl: 'https://aistudio.google.com/app/apikey', keyHint: 'AIza…', webSearch: null, noStreamUsage: true
+    keyUrl: 'https://aistudio.google.com/app/apikey', keyHint: 'AIza…', keyPrefix: 'AIza', webSearch: null, noStreamUsage: true
   },
   openrouter: {
     label: 'OpenRouter (many models)', kind: 'openai', baseUrl: 'https://openrouter.ai/api/v1',
-    keyUrl: 'https://openrouter.ai/settings/keys', keyHint: 'sk-or-…', webSearch: 'optional', oauth: true
+    keyUrl: 'https://openrouter.ai/settings/keys', keyHint: 'sk-or-…', keyPrefix: 'sk-or-', webSearch: 'optional', oauth: true
   }
 };
 
@@ -67,6 +67,16 @@ export function forgetAllKeys() {
   for (const s of [local(), session()]) { try { s.removeItem(KEYS_KEY); } catch {} }
 }
 
+// Catch pasted text that isn't a key (a command, a sentence) before it's saved and sent as a credential.
+// A key with an unexpected prefix is only a warning: providers occasionally introduce new key formats.
+export function keyProblem(providerId, key) {
+  const p = PROVIDERS[providerId];
+  if (!key) return null;
+  if (/\s/.test(key) || /[^\x21-\x7e]/.test(key)) return { error: `That isn't an API key: keys have no spaces or special characters. Paste just the ${p.label.replace(/ \(.*\)$/, '')} key.` };
+  if (p.keyPrefix && !key.startsWith(p.keyPrefix)) return { warning: `${p.label.replace(/ \(.*\)$/, '')} keys usually start with “${p.keyPrefix}”. Double-check you pasted the right one.` };
+  return null;
+}
+
 export const currentProvider = () => PROVIDERS[agentSettings.provider] ? agentSettings.provider : 'anthropic';
 export const currentModel = () => agentSettings.models[currentProvider()] || PROVIDERS[currentProvider()].defaultModel || '';
 
@@ -85,7 +95,10 @@ export async function listModels(providerId, key) {
   const r = await fetch(`${p.baseUrl}/models`, { headers: key ? { authorization: `Bearer ${key}` } : {} });
   if (!r.ok) throw new Error(await errorText(r, providerId));
   const data = await r.json();
-  return (data.data || []).map((m) => String(m.id).replace(/^models\//, '')).filter((id) => !HIDE.test(id)).sort();
+  let models = data.data || [];
+  // OpenRouter says which models accept tools; the agent can't work without them. Batch variants don't stream.
+  if (providerId === 'openrouter') models = models.filter((m) => (m.supported_parameters || []).includes('tools') && !String(m.id).endsWith(':batch'));
+  return models.map((m) => String(m.id).replace(/^models\//, '')).filter((id) => !HIDE.test(id)).sort();
 }
 
 export async function errorText(r, providerId) {
@@ -93,6 +106,7 @@ export async function errorText(r, providerId) {
   let msg = '';
   try { const j = JSON.parse(body); msg = j.error?.message || j.error || j.message || ''; } catch { msg = body.slice(0, 300); }
   if (r.status === 401 || r.status === 403) return `${PROVIDERS[providerId].label} rejected the API key${msg ? `: ${msg}` : '.'}`;
+  if (/tool use|tool calling|tools? (is|are) not supported|does not support tools|support tool/i.test(msg)) return `${PROVIDERS[providerId].label}: this model can't use tools, which the research agent needs. Pick another model in Settings. (${msg})`;
   if (r.status === 429) return `${PROVIDERS[providerId].label} rate limit or quota reached${msg ? `: ${msg}` : '.'}`;
   return `${PROVIDERS[providerId].label} error ${r.status}${msg ? `: ${msg}` : ''}`;
 }

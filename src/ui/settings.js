@@ -4,7 +4,7 @@ import { escapeHtml } from '../format.js';
 import { toast, emit } from '../store.js';
 import { getHealth, api } from '../backend.js';
 import {
-  PROVIDERS, agentSettings, saveSettings, getKey, setKey, setRemember, forgetAllKeys,
+  PROVIDERS, agentSettings, saveSettings, getKey, setKey, forgetAllKeys,
   currentProvider, currentModel, listModels, connectOpenRouter, keyProblem
 } from '../agent/providers.js';
 
@@ -58,7 +58,7 @@ export function openSettings() {
 
         <section>
           <h4>Research agent model</h4>
-          <p class="muted">Bring your own API key. It is stored only in this browser and sent only to ${escapeHtml(p.label.replace(/ \(.*\)$/, ''))}, which bills you directly. This site never sees it.</p>
+          <p class="muted">Bring your own API key. It stays in this browser until you remove it, and is sent only to ${escapeHtml(p.label.replace(/ \(.*\)$/, ''))}, which bills you directly. This site never sees it.</p>
           <label class="field">Provider
             <select id="setProvider">${Object.entries(PROVIDERS).map(([id, x]) => `<option value="${id}" ${id === prov ? 'selected' : ''}>${escapeHtml(x.label)}${getKey(id) ? ' ✓' : ''}</option>`).join('')}</select>
           </label>
@@ -74,7 +74,6 @@ export function openSettings() {
           </label>
           ${prov === 'openrouter' ? `<label class="toggle"><input type="checkbox" id="setWeb" ${agentSettings.openrouterWeb ? 'checked' : ''}> Web search (OpenRouter's web plugin, billed by OpenRouter)</label>` : ''}
           <p class="muted">Web research: ${p.webSearch === 'built in' ? 'built-in web search and page reading.' : p.webSearch === 'optional' ? 'optional web search (above); otherwise the agent reads pages you or it name, when you are signed in.' : 'the agent reads pages you or it name, when you are signed in (no search engine).'}</p>
-          <label class="toggle"><input type="checkbox" id="setRemember" ${agentSettings.remember ? 'checked' : ''}> Remember keys on this device (otherwise they are forgotten when you close the tab)</label>
           <div class="row"><button class="btn small" type="button" data-a="forget">Forget all keys</button></div>
         </section>
 
@@ -100,7 +99,6 @@ export function openSettings() {
     });
     q('#setModel').addEventListener('change', (e) => { agentSettings.models[prov] = e.target.value; saveSettings(); });
     q('#setWeb')?.addEventListener('change', (e) => { agentSettings.openrouterWeb = e.target.checked; saveSettings(); });
-    q('#setRemember').addEventListener('change', (e) => setRemember(e.target.checked));
     dlg.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => action(b.dataset.a, prov)));
     if (modelCache[prov]) fillModels(prov);
   };

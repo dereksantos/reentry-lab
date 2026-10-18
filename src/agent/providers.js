@@ -1,6 +1,6 @@
 // Model providers for the in-browser research agent, and where their keys live.
-// Keys are kept in this browser only (localStorage when "remember" is on, otherwise sessionStorage) and are sent
-// only to the provider's own API. The OpenRouter connection uses OpenRouter's OAuth PKCE flow, entirely client-side.
+// Keys are kept in this browser (localStorage) until the user removes them, and are sent only to the provider's
+// own API. The OpenRouter connection uses OpenRouter's OAuth PKCE flow, entirely client-side.
 
 export const PROVIDERS = {
   anthropic: {
@@ -30,7 +30,6 @@ const KEYS_KEY = 'reentry-lab:keys';
 
 // Storage can be missing (tests in Node) or throw (privacy modes); both just mean "nothing saved".
 const local = () => globalThis.localStorage;
-const session = () => globalThis.sessionStorage;
 function read(storage, key) {
   try { return JSON.parse(storage.getItem(key) || '{}'); } catch { return {}; }
 }
@@ -39,32 +38,32 @@ function write(storage, key, value) {
 }
 
 export const agentSettings = Object.assign(
-  { provider: 'anthropic', models: {}, remember: true, openrouterWeb: false },
+  { provider: 'anthropic', models: {}, openrouterWeb: false },
   read(local(), SETTINGS_KEY)
 );
+
+// Earlier versions had a "remember keys" switch that kept keys in sessionStorage (gone with the tab). Keys are now
+// always remembered: move any tab-only keys into localStorage and drop the old setting.
+(function migrateTabOnlyKeys() {
+  const tabOnly = read(globalThis.sessionStorage, KEYS_KEY);
+  if (Object.keys(tabOnly).length) {
+    write(local(), KEYS_KEY, { ...read(local(), KEYS_KEY), ...tabOnly });
+    try { globalThis.sessionStorage.removeItem(KEYS_KEY); } catch {}
+  }
+  if ('remember' in agentSettings) { delete agentSettings.remember; write(local(), SETTINGS_KEY, agentSettings); }
+})();
 export function saveSettings() { write(local(), SETTINGS_KEY, agentSettings); }
 
-const keyStore = () => (agentSettings.remember ? local() : session());
 export function getKey(provider) {
-  return read(local(), KEYS_KEY)[provider] || read(session(), KEYS_KEY)[provider] || '';
+  return read(local(), KEYS_KEY)[provider] || '';
 }
 export function setKey(provider, key) {
-  for (const s of [local(), session()]) {
-    const all = read(s, KEYS_KEY);
-    delete all[provider];
-    if (key && s === keyStore()) all[provider] = key;
-    write(s, KEYS_KEY, all);
-  }
-}
-// Move keys when the "remember on this device" choice changes.
-export function setRemember(on) {
-  const keys = Object.fromEntries(Object.keys(PROVIDERS).map((p) => [p, getKey(p)]));
-  agentSettings.remember = on;
-  saveSettings();
-  for (const [p, k] of Object.entries(keys)) setKey(p, k);
+  const all = read(local(), KEYS_KEY);
+  if (key) all[provider] = key; else delete all[provider];
+  write(local(), KEYS_KEY, all);
 }
 export function forgetAllKeys() {
-  for (const s of [local(), session()]) { try { s.removeItem(KEYS_KEY); } catch {} }
+  try { local().removeItem(KEYS_KEY); } catch {}
 }
 
 // Catch pasted text that isn't a key (a command, a sentence) before it's saved and sent as a credential.

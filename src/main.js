@@ -305,7 +305,11 @@ if (isCloud()) {
   settingsBtn.title = health.user ? `Signed in as ${health.user.name}. Settings and API keys` : 'Sign in, API keys and settings';
   settingsBtn.addEventListener('click', openSettings);
   if (health.supportUrl) Object.assign($('supportLink'), { hidden: false, href: health.supportUrl });
-  finishOpenRouter().then((ok) => ok && (toast('Connected to OpenRouter. Pick a model in Settings.', 4000), emit('agent-settings'))).catch((e) => toast(e.message, 5000));
+  finishOpenRouter().then((ok) => {
+    if (!ok) return;
+    toast('Connected to OpenRouter. Pick a model in Settings.', 4000);
+    emit('agent-settings');
+  }).catch((e) => toast(e.message, 5000));
 }
 buildParams($('paramPanel'));
 buildTimeline($('timeline'));

@@ -101,7 +101,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 /* ---------- top bar ---------- */
 .topbar { display: flex; align-items: center; gap: 14px; padding: 0 10px 0 16px; min-width: 0; }
 .brand { display: flex; align-items: center; gap: 9px; white-space: nowrap; }
-.brand-mark { width: 24px; height: 24px; flex: none; }
+.brand-mark { width: 28px; height: 26px; flex: none; }
 .brand-name { font: 600 21px/1 var(--font-display); letter-spacing: 0.05em; text-transform: uppercase; }
 .brand-sub { font: 500 10.5px/1 var(--font-mono); color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
 .preset-btn { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px 0 5px; min-width: 260px; max-width: 320px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); text-align: left; cursor: pointer; }

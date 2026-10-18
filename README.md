@@ -4,7 +4,8 @@
 
 A 3D atmospheric-entry simulator with a research agent built in. Fly a capsule, glider, probe or Mars lander through the atmosphere, and watch the heating, g-force and parachutes play out on a globe. You can ask the agent about what you're seeing: it runs the simulator itself, searches NASA reports and papers, and keeps a research notebook with you.
 
-<img width="1928" height="841" alt="Screenshot 2026-10-18 at 4 16 44 PM" src="https://github.com/user-attachments/assets/de6be377-4337-4421-98c6-19cee97128dc" />
+<img width="1902" height="841" alt="Screenshot 2026-10-18 at 7 08 43 PM" src="https://github.com/user-attachments/assets/9fcb2b91-e602-443e-9f40-36b69e504738" />
+
 
 It runs two ways, from the same code:
 

@@ -12,6 +12,7 @@ import { openSettings } from './settings.js';
 let root, msgsEl, input, sendBtn, statusDot, statusText, historySel;
 let messages = [];
 let busy = null; // { requestId, controller }
+let lastAsked = '';
 let health = null;
 let getContext = () => null;
 
@@ -90,6 +91,7 @@ export function buildAgent(el, contextFn) {
   statusDot = root.querySelector('#agentDot');
   statusText = root.querySelector('#agentStatus');
   historySel = root.querySelector('#historySel');
+  keepQuestionAcrossUpdate();
   const modelSel = root.querySelector('#modelSel');
   if (modelSel) {
     modelSel.value = store.model;
@@ -243,6 +245,31 @@ async function saveToNotebook(m) {
   }
 }
 
+// After a deploy, a tab opened earlier still runs the old build, and the pieces it loads on first use (the model
+// adapters) are gone from the server. Vite reports that as vite:preloadError: reload once to get the new build,
+// and put the question back in the box so nothing typed is lost.
+function keepQuestionAcrossUpdate() {
+  try {
+    const draft = sessionStorage.getItem('rl-draft');
+    if (draft) {
+      sessionStorage.removeItem('rl-draft');
+      input.value = draft;
+      toast('Reentry Lab was updated, so the page reloaded. Your question is back in the box.', 5000);
+    }
+  } catch {}
+  window.addEventListener('vite:preloadError', (e) => {
+    try {
+      // Already reloaded for this a moment ago: let the error show instead of looping.
+      if (Date.now() - Number(sessionStorage.getItem('rl-reloaded') || 0) < 60_000) return;
+      sessionStorage.setItem('rl-reloaded', String(Date.now()));
+      const draft = input.value.trim() || lastAsked;
+      if (draft) sessionStorage.setItem('rl-draft', draft);
+    } catch { return; }
+    e.preventDefault();
+    location.reload();
+  });
+}
+
 async function send(text) {
   text = (text || '').trim();
   if (!text || busy) return;
@@ -250,6 +277,7 @@ async function send(text) {
     const ready = cloudAgentReady();
     if (!ready.ok) { toast(ready.reason, 4000); checkHealth(); openSettings(); return; }
   }
+  lastAsked = text;
   input.value = '';
   input.style.height = '';
   const userMsg = { role: 'user', text };

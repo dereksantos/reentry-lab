@@ -32,7 +32,7 @@ export function renderHud(el, s, result) {
   }
   const hot = s.q > 0.5 * result.summary.peakHeatFlux;
   const main = [
-    ['Altitude', (s.alt / 1000).toFixed(1), 'km'],
+    ['Altitude', (Math.max(0, s.alt) / 1000).toFixed(1), 'km'],
     ['Speed', (s.vRel / 1000).toFixed(2), 'km/s'],
     ['Mach', sig(s.mach, 3), ''],
     ['Decel', s.g.toFixed(2), 'g'],

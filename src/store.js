@@ -34,7 +34,8 @@ export function emit(evt, data) {
 export function persist() {
   try {
     localStorage.setItem('reentry-lab:v1', JSON.stringify({
-      presetKey: store.presetKey, params: store.params, exag: store.exag,
+      // During a campaign contract, keep saving the lab's own settings, not the contract's vehicle.
+      presetKey: store.labSaved ? store.labSaved.presetKey : store.presetKey, params: store.labSaved ? store.labSaved.params : store.params, exag: store.exag,
       sessionId: store.sessionId, model: store.model, includeContext: store.includeContext
     }));
   } catch {}

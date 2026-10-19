@@ -3,7 +3,7 @@
 // State: inertial position and velocity, and mass (7 values). Forces: J2 gravity, drag, lift (rotated by bank angle
 // about the air-relative velocity), optional parachute drag, optional speculative magnetic drag, and an optional
 // electric thruster (thrust = 2·efficiency·power / exhaust speed, along or against the inertial velocity) that burns
-// propellant, so the mass falls while it runs.
+// propellant, so the mass falls while it runs. A fictional antigravity plate (game) cancels part of gravity below an altitude.
 // The atmosphere co-rotates with the planet, so aerodynamics use the air-relative velocity v - ω×r.
 // Integration: Dormand–Prince 5(4) with adaptive step size and event location by bisection.
 
@@ -51,6 +51,9 @@ export function simulate(input) {
   const m0 = veh.mass;
   const mDry = thrOn ? m0 - Math.min(thr.propellant, 0.95 * m0) : m0;
   const thrSign = thr.direction === 'prograde' ? 1 : -1;
+  // Fictional antigravity plate: cancels this share of gravity below startAlt. Not real physics; it's a game toy.
+  const ag = veh.antigrav || {};
+  const agFactor = Math.min(1, Math.max(0, ag.factor || 0));
 
   // ---------- initial state ----------
   const lat0 = rad(entry.lat), lon0 = rad(entry.lon);
@@ -111,7 +114,8 @@ export function simulate(input) {
     const side = cross(vhat, l0);
     const sb = rad(gb.bank);
     const ldir = add(scale(l0, Math.cos(sb)), scale(side, Math.sin(sb)));
-    const grav = gravityJ2(r, P.mu, P.Req, P.J2);
+    let grav = gravityJ2(r, P.mu, P.Req, P.J2);
+    if (agFactor && alt < ag.startAlt) grav = scale(grav, 1 - agFactor);
     let acc = add(grav, add(scale(vhat, -(aD + aM)), scale(ldir, aL)));
     if (aT) acc = add(acc, scale(unit(v), thrSign * aT));
     return { r, v, rF, geo, alt, air, vRel, V, qDyn, m, aD, aM, aL, aT, thrusting, acc, bank: chuteState && chuteState.stage > 0 ? 0 : gb.bank };

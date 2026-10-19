@@ -13,6 +13,7 @@ const GROUPS = [
   ['thruster', 'Electric thruster', false, null, '#5ee0d0', 'M3 12h7M10 8l4 4-4 4M14 12h7M17 9l3 3-3 3'],
   ['chute', 'Parachutes', false, null, '#f2b33d', 'M4 11a8 8 0 0 1 16 0M4 11l8 9 8-9M9 11l3 9 3-9'],
   ['limits', 'Limits', false, null, '#f07b78', 'M4 17a8 8 0 1 1 16 0M12 17l4-5'],
+  ['fiction', 'Antigravity', false, 'Fictional', '#ff7ad9', 'M12 3v18M7 8l5-5 5 5M5 14h14M7 18h10'],
   ['mhd', 'Magnetic braking', false, 'Speculative', '#c792ff', 'M6 4v8a6 6 0 0 0 12 0V4M6 8h4M14 8h4M10 4v8a2 2 0 0 0 4 0V4'],
   ['numerics', 'Numerics', false, null, '#8fa3b9', 'M17 5H7l6 7-6 7h10']
 ];
@@ -31,6 +32,7 @@ const SUMMARY = {
   thruster: () => { const t = store.params.vehicle.thruster; return t && t.enabled ? `${fmt('vehicle.thruster.power', 1)} kW · ${fmt('vehicle.thruster.propellant')} kg · ${t.direction}` : 'Off'; },
   chute: () => (store.params.vehicle.chute.enabled ? `${fmt('vehicle.chute.deployAlt', 1)} km · ${fmt('vehicle.chute.area')} m² main` : 'Off'),
   limits: () => `${fmt('limits.heatFlux')} W/cm² · ${fmt('limits.gLoad', 1)} g · ${fmt('limits.landingSpeed', 1)} m/s`,
+  fiction: () => (store.params.vehicle.antigrav?.factor > 0 ? `cancels ${Math.round(store.params.vehicle.antigrav.factor * 100)}% of gravity below ${fmt('vehicle.antigrav.startAlt')} km` : 'Off'),
   mhd: () => (store.params.vehicle.mhd.factor > 0 ? `${fmt('vehicle.mhd.factor', 1)}× aero drag` : 'Off'),
   numerics: () => `${fmt('sim.maxTime')} s · tol ${fmt('sim.rtol')}`
 };
@@ -44,6 +46,7 @@ const decimals = (m) => {
 };
 
 let rows = [];
+let groupEls = {};
 
 export function buildParams(root) {
   root.innerHTML = '';
@@ -61,6 +64,8 @@ export function buildParams(root) {
     if (id === 'vehicle') { body.prepend(snapshot()); body.appendChild(derived('beta', 'Ballistic coefficient β')); }
     if (id === 'thruster') { body.appendChild(derived('thrust', 'Thrust')); body.appendChild(derived('burn', 'Propellant lasts')); body.appendChild(derived('dv', 'Total speed change')); }
     if (id === 'entry') { body.appendChild(derived('orbit', 'Circular orbit speed here')); body.appendChild(derived('escape', 'Escape speed here')); }
+    det.dataset.group = id;
+    groupEls[id] = det;
     root.appendChild(det);
   }
   sync();
@@ -184,4 +189,14 @@ export function fillRange(r) {
   const min = Number(r.min), max = Number(r.max);
   r.style.setProperty('--p', `${((Number(r.value) - min) / (max - min)) * 100}%`);
 }
+// Campaign: show only the given parameter paths (a contract's knobs) and open their cards; null shows everything.
+export function setEditable(paths) {
+  for (const { m, el } of rows) el.classList.toggle('locked-out', !!paths && !paths.includes(m.path));
+  for (const [id, det] of Object.entries(groupEls)) {
+    const has = !paths || rows.some(({ m }) => m.group === id && paths.includes(m.path));
+    det.classList.toggle('locked-out', !has);
+    if (paths && has) det.open = true;
+  }
+}
+
 const setText = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };

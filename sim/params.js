@@ -52,6 +52,10 @@ export const PARAMS = [
   { path: 'vehicle.mhd.factor', label: 'Magnetic drag (× aero drag)', group: 'mhd', unit: '×', min: 0, max: 5, step: 0.1, desc: 'Toy model: extra braking from a magnetic field acting on ionized flow, ramping in from 3 to 5 km/s.' },
   { path: 'vehicle.mhd.efficiency', label: 'Share turned into electricity', group: 'mhd', unit: '', min: 0, max: 0.8, step: 0.05 },
 
+  // Fictional technology (game): no known physics does this
+  { path: 'vehicle.antigrav.factor', label: 'Antigravity: gravity cancelled', group: 'fiction', unit: '', min: 0, max: 1, step: 0.01, desc: 'Fictional: share of gravity a made-up antigravity plate cancels. 0 is off; 1 would make the vehicle float.' },
+  { path: 'vehicle.antigrav.startAlt', label: 'Antigravity switches on below', group: 'fiction', unit: 'km', scale: 1e-3, min: 0, max: 200000, step: 1000 },
+
   // Limits
   { path: 'limits.heatFlux', label: 'Heat shield limit', group: 'limits', unit: 'W/cm²', min: 5, max: 5000, log: true },
   { path: 'limits.heatLoad', label: 'Heat load limit', group: 'limits', unit: 'kJ/cm²', scale: 1e-3, min: 1000, max: 200000, log: true, desc: 'Total energy per area the shield can absorb at the nose.' },
@@ -70,7 +74,8 @@ export const DEFAULTS = {
     shape: 'capsule', mass: 2900, refArea: 3.8, cd: 1.3, noseRadius: 2.2, liftToDrag: 0.3, emissivity: 0.85,
     chute: { enabled: true, deployAlt: 9000, drogueArea: 24, drogueCd: 0.6, mainAlt: 7000, area: 1000, cd: 0.8, maxMach: 0.9, fillTime: 6 },
     mhd: { factor: 0, efficiency: 0.3 },
-    thruster: { enabled: false, power: 5000, efficiency: 0.6, exhaustSpeed: 20000, propellant: 100, direction: 'retrograde', cutoffAlt: 120000 }
+    thruster: { enabled: false, power: 5000, efficiency: 0.6, exhaustSpeed: 20000, propellant: 100, direction: 'retrograde', cutoffAlt: 120000 },
+    antigrav: { factor: 0, startAlt: 40000 }
   },
   guidance: { mode: 'constant', bank: 50, reversalPeriod: 240 },
   entry: { alt: 120000, speed: 7800, fpa: -1.4, azimuth: 60, lat: 30, lon: 20 },

@@ -10,6 +10,15 @@ export class EntrySound {
   constructor() {
     this.ac = null;
     this.on = false;
+    this.wasPlaying = null;
+  }
+
+  // Delay from scheduling a sound to it leaving the speakers, in ms (Bluetooth headphones add most of it).
+  // null if the browser doesn't report it.
+  latencyMs() {
+    if (!this.ac) return null;
+    const s = (this.ac.baseLatency || 0) + (this.ac.outputLatency || 0);
+    return s > 0 ? Math.round(s * 1000) : null;
   }
 
   // Returns whether sound is now on.
@@ -17,7 +26,7 @@ export class EntrySound {
     if (!this.ac) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return false;
-      this.ac = new AC();
+      this.ac = new AC({ latencyHint: 'interactive' });
       this.build();
       this.on = true;
     } else if (this.on) {
@@ -73,7 +82,10 @@ export class EntrySound {
   update(s, peaks, playing) {
     const n = this.n;
     if (!n || !this.on || !s) return;
-    const t = this.ac.currentTime, k = 0.09;
+    // Smooth changes while the run plays; snap within ~10 ms when play or pause is pressed.
+    const snapped = playing !== this.wasPlaying;
+    this.wasPlaying = playing;
+    const t = this.ac.currentTime, k = snapped ? 0.004 : 0.04;
     const qn = Math.min(1, s.q / peaks.q), dn = Math.min(1, s.qDyn / peaks.qDyn), gn = Math.min(1, s.g / peaks.g);
     const down = s.alt < 1;
     // Paused: keep a quieter bed of the current moment so scrubbing still sounds like something.
@@ -85,7 +97,7 @@ export class EntrySound {
     n.rumble.gain.setTargetAtTime(live * 0.35 * Math.pow(gn, 0.8), t, k);
     n.o1.frequency.setTargetAtTime(30 + 14 * gn, t, k);
     const slow = Math.min(1, Math.max(0, (800 - s.vRel) / 750));
-    n.wind.gain.setTargetAtTime(live * 0.16 * slow * slow, t, 0.3);
+    n.wind.gain.setTargetAtTime(live * 0.16 * slow * slow, t, snapped ? 0.004 : 0.15);
   }
 
   thump(strength) {

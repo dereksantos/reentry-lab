@@ -46,6 +46,7 @@
       <div class="checks" id="checks" aria-live="polite"></div>
       <div class="top-actions">
         <span class="computing" id="computing" hidden>Computing…</span>
+        <button class="btn campaign-btn" id="campaignBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c3 2 5 5.5 5 9.5V16H7v-4.5C7 7.5 9 4 12 2zM9 16l-2 5 3-2M15 16l2 5-3-2M12 9.5a1.5 1.5 0 1 0 0 .01"/></svg><span>Campaign</span></button>
         <button class="btn" id="pinBtn" type="button" title="Overlay this run for comparison">Pin run</button>
         <button class="btn primary" id="saveRunBtn" type="button" title="Save this run to the notebook">Save run</button>
         <a class="btn ghost support" id="supportLink" target="_blank" rel="noopener noreferrer" hidden>♥ Support</a>
@@ -122,6 +123,8 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg><span class="sr">Plots</span>
     </button>
   </div>
+  <div class="campaign" id="campaign" role="dialog" aria-modal="true" aria-label="Mission Control" hidden></div>
+  <div class="debrief" id="debrief" hidden></div>
   <div class="ride" id="ride" role="dialog" aria-modal="true" aria-label="Ride along" hidden></div>
   <div class="toast" id="toast" role="status" hidden></div>
   <script type="module" src="/src/main.js"></script>

@@ -73,7 +73,7 @@ test('A very shallow lift-up entry skips out of the atmosphere', () => {
 });
 
 test('Presets run and land', () => {
-  for (const key of ['leo-capsule', 'lunar-return', 'sample-return', 'mars-lander']) {
+  for (const key of ['leo-capsule', 'lunar-return', 'sample-return', 'mars-lander', 'electric-deorbit']) {
     const r = simulate(preset(key).params);
     assert.equal(r.summary.outcome, 'landed', key);
     assert.ok(r.summary.peakHeatFlux > 0);
@@ -90,4 +90,44 @@ test('Assignments accept display units', () => {
   assert.equal(parseAssignment('entry.speed=7.8').value, 7800);
   assert.equal(parseAssignment('guidance.mode=spin').value, 'spin');
   assert.throws(() => parseAssignment('nope=1'));
+});
+
+// Two hours in a vacuum orbit (no air) from 500 km, with or without electric thrust.
+const thrustRun = (direction) => simulate({
+  environment: { densityScale: 1e-30 },
+  vehicle: { mass: 1000, chute: { enabled: false }, thruster: { enabled: !!direction, power: 10000, efficiency: 0.6, exhaustSpeed: 20000, propellant: 50, direction, cutoffAlt: 0 } },
+  entry: { alt: 500000, speed: 7613, fpa: 0, azimuth: 45, lat: 0, lon: 0 },
+  sim: { maxTime: 7200, rtol: 1e-10 }
+});
+// Point-mass semi-major axis from the final state. Earth's bulge (J2) makes this wobble by kilometres on its own,
+// so compare runs against an unthrusted one over the same time.
+const semiMajor = (r) => {
+  const s = r.samples, i = s.t.length - 1, rr = Math.hypot(s.x[i], s.y[i], s.z[i]);
+  return 1 / (2 / rr - s.vInertial[i] ** 2 / PLANETS.earth.mu);
+};
+
+test('Electric thrust and propellant flow follow thrust = 2·efficiency·power / exhaust speed', () => {
+  const r = thrustRun('prograde');
+  const thrust = (2 * 0.6 * 10000) / 20000; // 0.6 N
+  const used = (thrust / 20000) * 7200; // kg
+  const th = r.summary.thruster;
+  assert.ok(close(th.thrust, thrust, 1e-12));
+  assert.ok(close(th.propellantUsed, used, 1e-3), `used ${th.propellantUsed} vs ${used}`);
+  assert.ok(close(th.deltaV, 20000 * Math.log(1000 / (1000 - used)), 1e-6));
+  assert.ok(close(r.samples.mass.at(-1), 1000 - used, 1e-6));
+});
+
+test('Retrograde thrust lowers an orbit and prograde raises it, by about the speed change given', () => {
+  const coast = thrustRun(null), up = thrustRun('prograde'), down = thrustRun('retrograde');
+  const a = semiMajor(coast), raised = semiMajor(up) - a, lowered = a - semiMajor(down);
+  // For gentle thrust, the change in semi-major axis is about 2·Δv / mean motion: a few kilometres here.
+  const expected = (2 * up.summary.thruster.deltaV) / Math.sqrt(PLANETS.earth.mu / a ** 3);
+  assert.ok(close(raised, expected, 0.02), `raised ${raised} m, expected about ${expected} m`);
+  assert.ok(close(lowered, expected, 0.02), `lowered ${lowered} m, expected about ${expected} m`);
+});
+
+test('The thruster is off by default and the mass stays constant', () => {
+  const r = simulate(preset('leo-capsule').params);
+  assert.equal(r.summary.thruster, null);
+  assert.ok(r.samples.mass.every((m) => m === preset('leo-capsule').params.vehicle.mass));
 });

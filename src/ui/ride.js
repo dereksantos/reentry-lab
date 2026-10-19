@@ -19,7 +19,7 @@ const GROUND = {
   earth: { hi: [[18, 57, 95], [44, 106, 160]], lo: [[77, 107, 60], [157, 183, 201]] },
   mars: { hi: [[107, 48, 24], [184, 103, 58]], lo: [[154, 90, 52], [217, 167, 122]] }
 };
-const SPEEDS = [1, 5, 20, 60, 200];
+const SPEEDS = [1, 5, 20, 60, 200, 1000, 10000];
 const PLAY = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.2v9.6L10.6 6z"/></svg>';
 const PAUSE = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 1.5h2.4v9H2.5zM7.1 1.5h2.4v9H7.1z"/></svg>';
 const SOUND_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';

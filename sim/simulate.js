@@ -1,7 +1,9 @@
 // 3-degree-of-freedom atmospheric entry simulation.
 //
-// State: inertial position and velocity (6 values). Forces: J2 gravity, drag, lift (rotated by bank angle
-// about the air-relative velocity), optional parachute drag, optional speculative magnetic drag.
+// State: inertial position and velocity, and mass (7 values). Forces: J2 gravity, drag, lift (rotated by bank angle
+// about the air-relative velocity), optional parachute drag, optional speculative magnetic drag, and an optional
+// electric thruster (thrust = 2·efficiency·power / exhaust speed, along or against the inertial velocity) that burns
+// propellant, so the mass falls while it runs. A fictional antigravity plate (game) cancels part of gravity below an altitude.
 // The atmosphere co-rotates with the planet, so aerodynamics use the air-relative velocity v - ω×r.
 // Integration: Dormand–Prince 5(4) with adaptive step size and event location by bisection.
 
@@ -41,6 +43,18 @@ export function simulate(input) {
   const g = params.guidance, entry = params.entry;
   const W = [0, 0, P.omega];
 
+  // Electric thruster. Propellant is part of veh.mass; thrust stops when it runs out or below cutoffAlt.
+  const thr = veh.thruster || {};
+  const thrOn = !!thr.enabled && thr.power > 0 && thr.efficiency > 0 && thr.exhaustSpeed > 0 && thr.propellant > 0;
+  const thrust = thrOn ? (2 * thr.efficiency * thr.power) / thr.exhaustSpeed : 0;
+  const mdot = thrOn ? thrust / thr.exhaustSpeed : 0;
+  const m0 = veh.mass;
+  const mDry = thrOn ? m0 - Math.min(thr.propellant, 0.95 * m0) : m0;
+  const thrSign = thr.direction === 'prograde' ? 1 : -1;
+  // Fictional antigravity plate: cancels this share of gravity below startAlt. Not real physics; it's a game toy.
+  const ag = veh.antigrav || {};
+  const agFactor = Math.min(1, Math.max(0, ag.factor || 0));
+
   // ---------- initial state ----------
   const lat0 = rad(entry.lat), lon0 = rad(entry.lon);
   const r0 = geodeticToFixed(lat0, lon0, entry.alt, P.Req, P.f);
@@ -49,7 +63,7 @@ export function simulate(input) {
   const hdir = add(scale(L0.north, Math.cos(az)), scale(L0.east, Math.sin(az)));
   const vdir = add(scale(hdir, Math.cos(gam)), scale(L0.up, Math.sin(gam)));
   const v0 = scale(vdir, entry.speed); // inertial at t = 0 (inertial and fixed frames coincide)
-  let y = [...r0, ...v0];
+  let y = [...r0, ...v0, m0];
   let t = 0;
 
   const vRel0F = sub(v0, cross(W, r0));
@@ -83,13 +97,16 @@ export function simulate(input) {
     const V = norm(vRel);
     const vhat = V > 0 ? scale(vRel, 1 / V) : [0, 0, 0];
     const qDyn = 0.5 * air.rho * V * V;
+    const m = s[6];
     const CdA = veh.cd * veh.refArea + chuteCdA(time, chuteState);
-    const aD = qDyn * CdA / veh.mass;
+    const aD = qDyn * CdA / m;
     const ramp = Math.min(1, Math.max(0, (V - 3000) / 2000));
-    const aM = (mhd.factor || 0) * (qDyn * veh.cd * veh.refArea / veh.mass) * ramp;
+    const aM = (mhd.factor || 0) * (qDyn * veh.cd * veh.refArea / m) * ramp;
     const gb = bankAt(time);
     const ld = chuteState && chuteState.stage > 0 ? 0 : gb.ld;
-    const aL = ld * qDyn * veh.cd * veh.refArea / veh.mass;
+    const aL = ld * qDyn * veh.cd * veh.refArea / m;
+    const thrusting = thrOn && m > mDry && alt > thr.cutoffAlt;
+    const aT = thrusting ? thrust / m : 0;
     const upF = enu(geo.lat, geo.lon).up;
     const up = fixedToInertial(upF, P.omega, time);
     let l0 = sub(up, scale(vhat, dot(up, vhat)));
@@ -97,13 +114,15 @@ export function simulate(input) {
     const side = cross(vhat, l0);
     const sb = rad(gb.bank);
     const ldir = add(scale(l0, Math.cos(sb)), scale(side, Math.sin(sb)));
-    const grav = gravityJ2(r, P.mu, P.Req, P.J2);
-    const acc = add(grav, add(scale(vhat, -(aD + aM)), scale(ldir, aL)));
-    return { r, v, rF, geo, alt, air, vRel, V, qDyn, aD, aM, aL, acc, bank: chuteState && chuteState.stage > 0 ? 0 : gb.bank };
+    let grav = gravityJ2(r, P.mu, P.Req, P.J2);
+    if (agFactor && alt < ag.startAlt) grav = scale(grav, 1 - agFactor);
+    let acc = add(grav, add(scale(vhat, -(aD + aM)), scale(ldir, aL)));
+    if (aT) acc = add(acc, scale(unit(v), thrSign * aT));
+    return { r, v, rF, geo, alt, air, vRel, V, qDyn, m, aD, aM, aL, aT, thrusting, acc, bank: chuteState && chuteState.stage > 0 ? 0 : gb.bank };
   }
   const deriv = (time, s, cs) => {
     const e = evaluate(time, s, cs);
-    return [s[3], s[4], s[5], e.acc[0], e.acc[1], e.acc[2]];
+    return [s[3], s[4], s[5], e.acc[0], e.acc[1], e.acc[2], e.thrusting ? -mdot : 0];
   };
 
   function rkStep(time, s, h, cs) {
@@ -112,12 +131,12 @@ export function simulate(input) {
       const yi = s.slice();
       for (let j = 0; j < i; j++) {
         const aij = DP.a[i][j];
-        if (aij) for (let n = 0; n < 6; n++) yi[n] += h * aij * k[j][n];
+        if (aij) for (let n = 0; n < 7; n++) yi[n] += h * aij * k[j][n];
       }
       k.push(deriv(time + DP.c[i] * h, yi, cs));
     }
     const y5 = s.slice(), y4 = s.slice();
-    for (let n = 0; n < 6; n++) {
+    for (let n = 0; n < 7; n++) {
       for (let i = 0; i < 7; i++) {
         y5[n] += h * DP.b5[i] * k[i][n];
         y4[n] += h * DP.b4[i] * k[i][n];
@@ -127,10 +146,10 @@ export function simulate(input) {
   }
 
   const rtol = params.sim.rtol;
-  const atol = [1e-3, 1e-3, 1e-3, 1e-6, 1e-6, 1e-6];
+  const atol = [1e-3, 1e-3, 1e-3, 1e-6, 1e-6, 1e-6, 1e-6];
   function errNorm(s, y5, y4) {
     let m = 0;
-    for (let n = 0; n < 6; n++) {
+    for (let n = 0; n < 7; n++) {
       const sc = atol[n] + rtol * Math.max(Math.abs(s[n]), Math.abs(y5[n]));
       m = Math.max(m, Math.abs(y5[n] - y4[n]) / sc);
     }
@@ -139,7 +158,8 @@ export function simulate(input) {
 
   // ---------- output buffers ----------
   const cols = ['t', 'lat', 'lon', 'alt', 'x', 'y', 'z', 'vRel', 'vInertial', 'fpa', 'heading', 'mach', 'rho', 'temp',
-    'qConv', 'qRad', 'q', 'heatLoad', 'g', 'qDyn', 'tWall', 'downrange', 'crossrange', 'bank', 'chute', 'power', 'harvest'];
+    'qConv', 'qRad', 'q', 'heatLoad', 'g', 'qDyn', 'tWall', 'downrange', 'crossrange', 'bank', 'chute', 'power', 'harvest',
+    'mass', 'thrust', 'propellant'];
   const out = Object.fromEntries(cols.map((c) => [c, []]));
   const events = [];
   const S = {
@@ -147,7 +167,7 @@ export function simulate(input) {
     peakG: 0, tPeakG: 0, peakChuteG: 0, peakDynP: 0, tPeakDynP: 0, peakTWall: 0, peakPower: 0, peakHarvest: 0,
     heatLoad: 0, harvested: 0, minAlt: entry.alt, tMach1: null
   };
-  let prevQ = null, prevHarvest = 0, prevT = 0, prevMach = null, skipped = false, minAltReached = false;
+  let prevQ = null, prevHarvest = 0, prevT = 0, prevMach = null, skipped = false, minAltReached = false, lastRec = 0;
 
   function record(time, s) {
     const e = evaluate(time, s, chuteOut);
@@ -155,7 +175,8 @@ export function simulate(input) {
     const qC = convectiveSuttonGraves(P.suttonGravesK, air.rho, veh.noseRadius, e.V);
     const qR = P.radiative === 'tauber-sutton-earth' ? radiativeTauberSutton(air.rho, veh.noseRadius, e.V) : 0;
     const q = qC + qR;
-    const gload = Math.hypot(e.aD + e.aM, e.aL) / G0;
+    // Sensed acceleration: aerodynamic forces plus thrust (thrust taken as along the flight direction).
+    const gload = Math.hypot(e.aD + e.aM - thrSign * e.aT, e.aL) / G0;
     const mach = e.V / air.a;
     const L = enu(e.geo.lat, e.geo.lon);
     const vRelF = inertialToFixed(e.vRel, P.omega, time);
@@ -164,8 +185,8 @@ export function simulate(input) {
     const rhat = unit(e.rF);
     const downrange = angleBetween(r0hat, rhat) * P.meanRadius;
     const crossrange = Math.asin(Math.max(-1, Math.min(1, dot(rhat, planeN)))) * P.meanRadius;
-    const power = (e.aD + e.aM) * veh.mass * e.V;
-    const harvest = (mhd.efficiency || 0) * e.aM * veh.mass * e.V;
+    const power = (e.aD + e.aM) * e.m * e.V;
+    const harvest = (mhd.efficiency || 0) * e.aM * e.m * e.V;
     const tWall = radiativeEquilibriumTemp(q, veh.emissivity);
 
     if (prevQ !== null) {
@@ -195,9 +216,11 @@ export function simulate(input) {
       t: time, lat: deg(e.geo.lat), lon: deg(e.geo.lon), alt: e.alt, x: e.rF[0], y: e.rF[1], z: e.rF[2],
       vRel: e.V, vInertial: norm(e.v), fpa: deg(fpa), heading, mach, rho: air.rho, temp: air.T,
       qConv: qC, qRad: qR, q, heatLoad: S.heatLoad, g: gload, qDyn: e.qDyn, tWall,
-      downrange, crossrange, bank: e.bank, chute: chuteOut.stage, power, harvest
+      downrange, crossrange, bank: e.bank, chute: chuteOut.stage, power, harvest,
+      mass: e.m, thrust: e.thrusting ? thrust : 0, propellant: Math.max(0, e.m - mDry)
     };
     for (const c of cols) out[c].push(row[c]);
+    lastRec = time;
     return row;
   }
 
@@ -219,6 +242,9 @@ export function simulate(input) {
 
   // ---------- integrate ----------
   events.push({ type: 'entry', t: 0, label: 'Entry interface' });
+  const thrustingAt = (time, s) => thrOn && s[6] > mDry && altOf(time, s) > thr.cutoffAlt;
+  let wasThrusting = thrustingAt(0, y);
+  if (wasThrusting) events.push({ type: 'thrustOn', t: 0, label: 'Thruster on' });
   record(t, y);
   let h = 0.5;
   let outcome = 'timeout';
@@ -273,8 +299,23 @@ export function simulate(input) {
     }
 
     t += hn; y = yn; steps++;
+    const thrustingNow = thrustingAt(t, y);
+    if (thrustingNow !== wasThrusting) {
+      const why = y[6] <= mDry ? 'propellant used up' : `below ${Math.round(thr.cutoffAlt / 1000)} km`;
+      events.push(thrustingNow ? { type: 'thrustOn', t, label: 'Thruster on' } : { type: 'thrustOff', t, label: `Thruster off: ${why}` });
+    }
+    // Above the air nothing changes quickly, so long orbital runs record at most once a minute.
+    if (altN > 140000 && t - lastRec < 60 && thrustingNow === wasThrusting) {
+      const rr = [y[0], y[1], y[2]], vv = [y[3], y[4], y[5]];
+      if (altN > 1500000 || (dot(vv, vv) / 2 - P.mu / norm(rr) > 0 && dot(rr, vv) > 0)) { record(t, y); outcome = 'escaped'; break; }
+      h = hn * Math.min(5, Math.max(0.2, 0.9 * Math.pow(Math.max(err, 1e-12), -0.2)));
+      if (steps > 400000) break;
+      continue;
+    }
+    wasThrusting = thrustingNow;
     const row = record(t, y);
-    if (!minAltReached && row.fpa > 0 && row.alt < entry.alt) minAltReached = true;
+    // A skip needs a real dip into the air first (an orbit's small altitude wobble doesn't count).
+    if (!minAltReached && row.fpa > 0 && row.alt < Math.min(entry.alt, 120000)) minAltReached = true;
     if (minAltReached && !skipped && row.alt > entry.alt) {
       skipped = true;
       events.push({ type: 'skip', t, label: 'Skipped out of the atmosphere' });
@@ -288,6 +329,7 @@ export function simulate(input) {
     h = hn * Math.min(5, Math.max(0.2, 0.9 * Math.pow(Math.max(err, 1e-12), -0.2)));
     if (steps > 400000) break;
   }
+  if (out.t[out.t.length - 1] < t) record(t, y); // the thinned-out orbital stretch may have skipped the last moment
   if (outcome === 'timeout' && skipped && out.alt[out.alt.length - 1] > entry.alt) outcome = 'skipped';
 
   // ---------- summary ----------
@@ -315,6 +357,12 @@ export function simulate(input) {
     peakWallTemp: S.peakTWall,
     peakBrakingPower: S.peakPower,
     harvestedEnergy: S.harvested, peakHarvestPower: S.peakHarvest,
+    thruster: thrOn ? {
+      thrust, propellantFlow: mdot,
+      propellantUsed: m0 - last('mass'),
+      burnTime: (m0 - last('mass')) / mdot,
+      deltaV: thr.exhaustSpeed * Math.log(m0 / last('mass'))
+    } : null,
     timeSubsonic: S.tMach1,
     chuteDeployMach: S.chuteMach ?? null, chuteDeploySpeed: S.chuteSpeed ?? null, chuteDeployDynamicPressure: S.chuteQDyn ?? null,
     mainDeploySpeed: S.mainSpeed ?? null,
@@ -360,6 +408,7 @@ export function brief(result) {
     landing: s.landingLat == null ? null : { lat: r(s.landingLat, 3), lon: r(s.landingLon, 3) },
     downrange_km: r(s.downrange / 1000, 0), crossrange_km: r(s.crossrange / 1000, 1),
     harvestedEnergy_GJ: r(s.harvestedEnergy / 1e9, 2),
+    thruster: s.thruster ? { thrust_N: r(s.thruster.thrust, 3), propellantUsed_kg: r(s.thruster.propellantUsed, 2), burnTime_h: r(s.thruster.burnTime / 3600, 1), deltaV_m_s: r(s.thruster.deltaV, 1) } : null,
     checks: Object.fromEntries(Object.entries(s.checks).filter(([, v]) => v).map(([k, v]) => [k, v.ok ? 'ok' : 'exceeded']))
   };
 }

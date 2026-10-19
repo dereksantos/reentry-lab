@@ -9,9 +9,11 @@ export function sig(v, digits = 3) {
 export function clock(t) {
   if (t == null || !Number.isFinite(t)) return '–';
   const s = Math.max(0, t);
-  const m = Math.floor(s / 60);
-  const r = Math.floor(s % 60);
-  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+  const pad = (n) => String(Math.floor(n)).padStart(2, '0');
+  // Electric-thruster runs last days: show 1d 04:12 past a day and 4:12:07 past an hour.
+  if (s >= 86400) return `${Math.floor(s / 86400)}d ${pad((s % 86400) / 3600)}:${pad((s % 3600) / 60)}`;
+  if (s >= 3600) return `${Math.floor(s / 3600)}:${pad((s % 3600) / 60)}:${pad(s % 60)}`;
+  return `${pad(s / 60)}:${pad(s % 60)}`;
 }
 export function energy(j) {
   if (j >= 1e12) return sig(j / 1e12) + ' TJ';

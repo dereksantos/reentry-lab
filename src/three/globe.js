@@ -54,6 +54,10 @@ export class Globe {
     this.lineMaterials = [];
     this.lastTarget = null;
     this.mode = 'orbit';
+    // Campaign: 'full' shows the whole predicted run; 'hidden' shows none of it; 'trail' draws it up to the vehicle.
+    this.reveal = 'full';
+    this.targetGroup = new THREE.Group();
+    this.scene.add(this.targetGroup);
     // Pixels of the canvas covered by floating panels; the camera frames the open area between them.
     this.insets = { left: 0, right: 0, top: 0, bottom: 0 };
     this.fitScale = 1;
@@ -169,11 +173,14 @@ export class Globe {
     geo.setColors(col);
     const mat = this.lineMat({ vertexColors: true, linewidth: 3.2 });
     mat.__run = true;
-    this.runGroup.add(new Line2(geo, mat));
+    this.runLine = new Line2(geo, mat);
+    this.runSegments = n - 1;
+    this.runGroup.add(this.runLine);
 
     const gg = new THREE.BufferGeometry();
     gg.setAttribute('position', new THREE.Float32BufferAttribute(gpos, 3));
-    this.runGroup.add(new THREE.Line(gg, new THREE.LineBasicMaterial({ color: 0xa3b3c6, transparent: true, opacity: 0.45 })));
+    this.groundLine = new THREE.Line(gg, new THREE.LineBasicMaterial({ color: 0xa3b3c6, transparent: true, opacity: 0.45 }));
+    this.runGroup.add(this.groundLine);
 
     // Translucent curtain between the path and the ground track, for depth.
     const idx = [], verts = [];
@@ -182,7 +189,8 @@ export class Globe {
     const cg = new THREE.BufferGeometry();
     cg.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
     cg.setIndex(idx);
-    this.runGroup.add(new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: 0x5ea2ff, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false })));
+    this.curtain = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: 0x5ea2ff, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false }));
+    this.runGroup.add(this.curtain);
 
     // A few labels only; events close in time would overlap on screen (the timeline lists them all).
     const wanted = { entry: 'Entry', peakQ: 'Peak heating', chute: 'Parachute', touchdown: 'Touchdown', skip: 'Skip-out', reentry: 'Second entry' };
@@ -201,6 +209,50 @@ export class Globe {
       o.position.copy(this.posOf(result, i, exag));
       this.labelGroup.add(o);
     }
+    this.applyReveal(this.lastT || 0);
+  }
+
+  setReveal(mode) {
+    this.reveal = mode;
+    this.applyReveal(this.lastT || 0);
+  }
+
+  applyReveal(t) {
+    if (!this.runLine) return;
+    const full = this.reveal === 'full';
+    this.runGroup.visible = this.reveal !== 'hidden';
+    this.labelGroup.visible = full;
+    const i = full ? this.runSegments : Math.max(1, this.indexAt(this.result, t));
+    this.runLine.geometry.instanceCount = i;
+    this.groundLine.geometry.setDrawRange(0, full ? Infinity : i + 1);
+    this.curtain.geometry.setDrawRange(0, full ? Infinity : i * 6);
+  }
+
+  // A ring on the ground around a target (lat, lon in degrees), for campaign contracts. null removes it.
+  setTarget(target, planetId) {
+    this.targetGroup.clear();
+    if (!target) return;
+    const d = Math.PI / 180, lat = target.lat * d, lon = target.lon * d;
+    const c = new THREE.Vector3(Math.cos(lat) * Math.cos(lon), Math.cos(lat) * Math.sin(lon), Math.sin(lat));
+    const east = new THREE.Vector3(-Math.sin(lon), Math.cos(lon), 0);
+    const north = new THREE.Vector3().crossVectors(c, east);
+    const R = PLANETS[planetId || this.planetId].meanRadius / 1000;
+    const ring = (km, color, opacity) => {
+      const a = km / R, pts = [];
+      for (let k = 0; k <= 96; k++) {
+        const th = (k / 96) * Math.PI * 2;
+        const u = c.clone().multiplyScalar(Math.cos(a)).add(east.clone().multiplyScalar(Math.cos(th) * Math.sin(a))).add(north.clone().multiplyScalar(Math.sin(th) * Math.sin(a)));
+        pts.push(toScene(u.x, u.y, u.z, 1.002));
+      }
+      return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthTest: true }));
+    };
+    for (const [km, op] of target.rings || [[150, 0.5], [40, 0.8], [10, 1]]) this.targetGroup.add(ring(km, 0x3ccf91, op));
+    const el = document.createElement('div');
+    el.className = 'evlabel target';
+    el.textContent = target.label;
+    const o = new CSS2DObject(el);
+    o.position.copy(toScene(c.x, c.y, c.z, 1.004));
+    this.targetGroup.add(o);
   }
 
   setPins(pins, exag, colors) {
@@ -228,6 +280,8 @@ export class Globe {
   // Move the vehicle marker to playback time t.
   setPlayhead(sample, heatMax) {
     if (!sample || !this.result) return;
+    this.lastT = sample.t;
+    if (this.reveal === 'trail') this.applyReveal(sample.t);
     const r = Math.hypot(sample.x, sample.y, sample.z);
     const k = (this.R + sample.alt * this.exag) / (r * this.R);
     const p = toScene(sample.x, sample.y, sample.z, k);

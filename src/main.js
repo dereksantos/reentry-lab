@@ -19,6 +19,7 @@ import { buildParams, sync as syncParams } from './ui/params.js';
 import { buildHangar, updateHangar, openHangar } from './ui/hangar.js';
 import { warmSnapshots } from './three/snapshots.js';
 import { buildRide, openRide, closeRide, updateRide, isRideOpen } from './ui/ride.js';
+import { buildCampaign, campaignTick, campaignResult, campaignSpace } from './ui/campaign.js';
 import { buildTimeline, updateTimelineRun, updateTimelineHead, setPlaying } from './ui/timeline.js';
 import { renderHud } from './ui/hud.js';
 import { buildCharts, updateCharts, redrawPlayhead } from './ui/charts.js';
@@ -79,6 +80,7 @@ function onResult(result) {
   refreshFrame(true);
   if (globe.mode === 'follow' && (planetChanged || jumped)) globe.setMode('follow');
   shareContext();
+  campaignResult();
 }
 
 function computeHeatMax() {
@@ -208,7 +210,8 @@ function buildContext() {
     planet: p.planet, mass_kg: p.vehicle.mass, refArea_m2: p.vehicle.refArea, cd: p.vehicle.cd, noseRadius_m: p.vehicle.noseRadius, liftToDrag: p.vehicle.liftToDrag,
     guidance: `${p.guidance.mode}${p.guidance.mode !== 'spin' ? ' ' + p.guidance.bank + '°' : ''}`,
     entry: `${p.entry.alt / 1000} km, ${p.entry.speed / 1000} km/s inertial, ${p.entry.fpa}°, heading ${p.entry.azimuth}°, at ${p.entry.lat}°, ${p.entry.lon}°`,
-    limits: `${p.limits.heatFlux} W/cm², ${p.limits.heatLoad / 1000} kJ/cm², ${p.limits.gLoad} g`
+    limits: `${p.limits.heatFlux} W/cm², ${p.limits.heatLoad / 1000} kJ/cm², ${p.limits.gLoad} g`,
+    thruster: p.vehicle.thruster?.enabled ? `${p.vehicle.thruster.power / 1000} kW electric, efficiency ${p.vehicle.thruster.efficiency}, exhaust ${p.vehicle.thruster.exhaustSpeed / 1000} km/s, ${p.vehicle.thruster.propellant} kg propellant, ${p.vehicle.thruster.direction}, off below ${p.vehicle.thruster.cutoffAlt / 1000} km` : 'off'
   };
   const pinned = store.pins.filter((x) => x.result).map((x) => ({ label: x.label, results: brief(x.result) }));
   const briefCtx = { run: runLabel(), preset: store.presetKey, changedFromPreset: changed, keyParams, results: brief(store.result), lookingAt: playback, pinned };
@@ -252,11 +255,13 @@ let prev = performance.now();
 function loop(now) {
   const dt = Math.min(0.1, (now - prev) / 1000);
   prev = now;
+  campaignTick(current, store.result);
   if (store.playing && store.result) {
     const T = store.result.samples.t[store.result.samples.t.length - 1];
     store.playhead += dt * store.speed;
-    if (store.playhead >= T) { store.playhead = T; setPlaying(false); }
-    refreshFrame(false);
+    // Draw the final moment fully when playback reaches the end (the readout is otherwise throttled).
+    if (store.playhead >= T) { store.playhead = T; setPlaying(false); refreshFrame(true); }
+    else refreshFrame(false);
   }
   if (isRideOpen()) {
     // The ride-along view covers the globe, so skip drawing it.
@@ -379,6 +384,8 @@ if (isCloud()) {
 warmSnapshots(['capsule', 'probe', 'inflatable', 'glider']);
 buildHangar($('presetBtn'), $('hangar'), loadPreset);
 buildRide($('ride'));
+buildCampaign({ app, globe });
+on('mobile-sheet', (name) => setSheet(name));
 $('rideBtn').addEventListener('click', openRide);
 $('mRideBtn').addEventListener('click', openRide);
 applyMobile();
@@ -394,7 +401,7 @@ requestAnimationFrame(loop);
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && isRideOpen()) { closeRide(); return; }
   if (e.target.closest('input, textarea, select')) return;
-  if (e.key === ' ') { e.preventDefault(); setPlaying(!store.playing); }
+  if (e.key === ' ') { e.preventDefault(); if (!campaignSpace()) setPlaying(!store.playing); }
   if (e.metaKey || e.ctrlKey || e.altKey || isRideOpen()) return;
   if (e.key === 'f' || e.key === 'F') setLayout('focus', !ui.focus);
   if (e.key === '[') setLayout('noLeft', !ui.noLeft);

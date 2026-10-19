@@ -1,11 +1,12 @@
 // Tiny state store with named events. Everything in the app reads and writes through here.
-import { PRESETS, clone } from '../sim/index.js';
+import { PRESETS, clone, normalizeParams } from '../sim/index.js';
 
 const saved = (() => { try { return JSON.parse(localStorage.getItem('reentry-lab:v1') || '{}'); } catch { return {}; } })();
 
 export const store = {
   presetKey: saved.presetKey || 'lunar-return',
-  params: saved.params || clone(PRESETS.find((p) => p.key === (saved.presetKey || 'lunar-return')).params),
+  // Saved settings may predate newer parameters (such as the thruster); fill those in from the defaults.
+  params: saved.params ? normalizeParams(saved.params) : clone(PRESETS.find((p) => p.key === (saved.presetKey || 'lunar-return')).params),
   result: null,
   pins: [],                 // [{ id, label, color, params, result }]
   playhead: 0,
@@ -33,7 +34,8 @@ export function emit(evt, data) {
 export function persist() {
   try {
     localStorage.setItem('reentry-lab:v1', JSON.stringify({
-      presetKey: store.presetKey, params: store.params, exag: store.exag,
+      // During a campaign contract, keep saving the lab's own settings, not the contract's vehicle.
+      presetKey: store.labSaved ? store.labSaved.presetKey : store.presetKey, params: store.labSaved ? store.labSaved.params : store.params, exag: store.exag,
       sessionId: store.sessionId, model: store.model, includeContext: store.includeContext
     }));
   } catch {}

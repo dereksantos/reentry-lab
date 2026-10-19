@@ -208,7 +208,8 @@ function buildContext() {
     planet: p.planet, mass_kg: p.vehicle.mass, refArea_m2: p.vehicle.refArea, cd: p.vehicle.cd, noseRadius_m: p.vehicle.noseRadius, liftToDrag: p.vehicle.liftToDrag,
     guidance: `${p.guidance.mode}${p.guidance.mode !== 'spin' ? ' ' + p.guidance.bank + '°' : ''}`,
     entry: `${p.entry.alt / 1000} km, ${p.entry.speed / 1000} km/s inertial, ${p.entry.fpa}°, heading ${p.entry.azimuth}°, at ${p.entry.lat}°, ${p.entry.lon}°`,
-    limits: `${p.limits.heatFlux} W/cm², ${p.limits.heatLoad / 1000} kJ/cm², ${p.limits.gLoad} g`
+    limits: `${p.limits.heatFlux} W/cm², ${p.limits.heatLoad / 1000} kJ/cm², ${p.limits.gLoad} g`,
+    thruster: p.vehicle.thruster?.enabled ? `${p.vehicle.thruster.power / 1000} kW electric, efficiency ${p.vehicle.thruster.efficiency}, exhaust ${p.vehicle.thruster.exhaustSpeed / 1000} km/s, ${p.vehicle.thruster.propellant} kg propellant, ${p.vehicle.thruster.direction}, off below ${p.vehicle.thruster.cutoffAlt / 1000} km` : 'off'
   };
   const pinned = store.pins.filter((x) => x.result).map((x) => ({ label: x.label, results: brief(x.result) }));
   const briefCtx = { run: runLabel(), preset: store.presetKey, changedFromPreset: changed, keyParams, results: brief(store.result), lookingAt: playback, pinned };

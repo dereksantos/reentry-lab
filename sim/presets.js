@@ -55,6 +55,15 @@ export const PRESETS = [
     entry: { alt: 120000, speed: 7800, fpa: -1.4, azimuth: 60, lat: 30, lon: 20 },
     limits: { heatFlux: 300, heatLoad: 40000, gLoad: 8, landingSpeed: 10 }
   }),
+  P('electric-deorbit', 'Solar-electric deorbit', 'A small spacecraft lowers itself from a 400 km orbit with a 20 kW solar-powered Hall thruster, then enters and lands under parachutes. Shows how gentle electric thrust is: it takes days.', {
+    vehicle: { shape: 'capsule', mass: 1500, refArea: 3.8, cd: 1.3, noseRadius: 2.2, liftToDrag: 0,
+      chute: { enabled: true, deployAlt: 9000, drogueArea: 24, drogueCd: 0.6, mainAlt: 7000, area: 600, cd: 0.8, maxMach: 0.9, fillTime: 6 },
+      thruster: { enabled: true, power: 20000, efficiency: 0.6, exhaustSpeed: 20000, propellant: 150, direction: 'retrograde', cutoffAlt: 120000 } },
+    guidance: { mode: 'spin', bank: 0 },
+    entry: { alt: 400000, speed: 7672, fpa: 0, azimuth: 60, lat: 30, lon: 20 },
+    limits: { heatFlux: 300, heatLoad: 40000, gLoad: 8, landingSpeed: 10 },
+    sim: { maxTime: 604800 }
+  }),
   P('mars-lander', 'Mars lander', 'MSL-class guided entry at Mars with a supersonic parachute.', {
     planet: 'mars',
     vehicle: { shape: 'capsule', mass: 3300, refArea: 15.9, cd: 1.68, noseRadius: 1.125, liftToDrag: 0.24,

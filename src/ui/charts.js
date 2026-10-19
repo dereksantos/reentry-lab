@@ -45,6 +45,15 @@ function hooksFor(def) {
   };
 }
 
+// Axis ticks: whole hours and days get short labels so multi-day thruster runs stay readable.
+const axisTime = (v) => {
+  if (v >= 3600 && v % 3600 === 0) {
+    const d = Math.floor(v / 86400), h = (v % 86400) / 3600;
+    return d ? (h ? `${d}d ${h}h` : `${d}d`) : `${h}h`;
+  }
+  return clock(v);
+};
+
 export function buildCharts(root) {
   root.innerHTML = DEFS.map((d) => `<div class="chart"><h4>${d.title}<span id="cv-${d.key}">${d.unit}</span></h4><div class="plotbox" id="pb-${d.key}"></div></div>`).join('') +
     `<div class="chart"><h4>Speed vs altitude<span>corridor</span></h4><div class="plotbox" id="pb-vh"><canvas class="vh" id="vhCanvas"></canvas><div class="tip" id="vhTip" hidden></div></div></div>`;
@@ -90,7 +99,7 @@ export function updateCharts() {
       legend: { show: false },
       cursor: { sync: { key: 'reentry' }, points: { size: 6 }, drag: { x: false, y: false } },
       scales: { x: { time: false }, y: { range: (u, min, max) => [0, def.limit ? Math.max(max * 1.08, Math.min(def.limit() * 1.1, max * 3)) : max * 1.05 || 1] } },
-      axes: [{ ...axis(ink2), incrs: [10, 20, 30, 60, 120, 180, 300, 600, 900, 1200, 1800, 3600], space: 46, values: (u, vals) => vals.map((v) => clock(v)), size: 26 }, { ...axis(ink2), values: (u, vals) => vals.map((v) => sig(v, 3)) }],
+      axes: [{ ...axis(ink2), incrs: [10, 20, 30, 60, 120, 180, 300, 600, 900, 1200, 1800, 3600, 7200, 14400, 21600, 43200, 86400, 172800], space: 46, values: (u, vals) => vals.map(axisTime), size: 26 }, { ...axis(ink2), values: (u, vals) => vals.map((v) => sig(v, 3)) }],
       series,
       hooks: {
         ...hooksFor(def),

@@ -12,7 +12,7 @@ export function buildTimeline(root) {
   root.innerHTML = `
     <button class="play" id="playBtn" type="button" aria-label="Play">${PLAY}</button>
     <label class="speed"><span class="sr">Playback speed</span>
-      <select id="speedSel">${[1, 5, 20, 60, 200].map((s) => `<option value="${s}" ${s === store.speed ? 'selected' : ''}>${s}×</option>`).join('')}</select>
+      <select id="speedSel">${[1, 5, 20, 60, 200, 1000, 10000].map((s) => `<option value="${s}" ${s === store.speed ? 'selected' : ''}>${s}×</option>`).join('')}</select>
     </label>
     <div class="track" id="track" role="slider" tabindex="0" aria-label="Playback time"><div class="rail"></div><div class="heat" id="heatStrip"></div><div class="head" id="head"></div></div>
     <span class="tclock" id="tclock">–</span>`;

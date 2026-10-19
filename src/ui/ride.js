@@ -131,7 +131,7 @@ const TEMPLATE = `
     </div>
     <label class="speed"><span class="sr">Playback speed</span><select data-r="speed">${SPEEDS.map((s) => `<option value="${s}">${s}×</option>`).join('')}</select></label>
     <button class="btn" type="button" aria-pressed="false" data-r="sound">${SOUND_OFF}<span>Turn on sound</span></button>
-    <p class="ride-about">Sound is made live from this run: roar follows dynamic pressure, hiss follows heat flux, rumble follows g, and each parachute opens with a thump. Headphones help.</p>
+    <p class="ride-about">Sound is made live from this run: roar follows dynamic pressure, hiss follows heat flux, rumble follows g, and each parachute opens with a thump. Headphones help. <span data-r="latency"></span></p>
   </footer>`;
 
 let root, R = {};
@@ -164,6 +164,11 @@ export function buildRide(el) {
     const on = sound.toggle();
     R.sound.setAttribute('aria-pressed', String(on));
     R.sound.innerHTML = `${on ? SOUND_ON : SOUND_OFF}<span>${on ? 'Sound on' : 'Turn on sound'}</span>`;
+    // The device's output delay is only known once audio is running, so read it a moment later.
+    setTimeout(() => {
+      const ms = sound.latencyMs();
+      R.latency.textContent = on && ms != null ? `Audio delay on this device: about ${ms} ms${ms > 100 ? ' (wireless headphones add most of this; wired ones are much quicker)' : ''}.` : '';
+    }, 400);
   });
 }
 
